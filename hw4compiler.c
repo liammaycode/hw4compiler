@@ -3,8 +3,8 @@
 // COP 3402
 // Spring 2020
 
-// This program is a representation of a PL/0 compiler in C. It contains a compiler
-// driver, a parser, and an intermediate code generator.
+// This program is a representation of a PL/0 compiler in C. It contains a Lexical
+// analyzer, a parser, an intermediate code generator, and a virtual machine.
 // This code takes as input a text file containing PL/0 code. It then represents
 // the text as a list of lexemes and converts those lexemes into assembly code.
 // That assembly code is then passed to our virtual machine to be executed.
@@ -21,6 +21,7 @@
 #define MAX_CODE_LENGTH 550
 #define MAX_SYMBOL_TABLE_SIZE 500
 #define MAX_LEXI_LEVELS 3
+#define MAX_TYPE_LENGTH 13
 
 typedef enum
 {
@@ -32,16 +33,10 @@ typedef enum
   varsym = 29, procsym = 30, writesym = 31, readsym = 32 , elsesym = 33
 } token_type;
 
-typedef struct lexemes
-{
-  token_type type;
-  char *lex;
-}lexeme;
-
 typedef struct
 {
   token_type type;
-  char value[12];
+  char str[MAX_TYPE_LENGTH];
 }token;
 
 typedef struct
@@ -61,26 +56,29 @@ typedef struct
   int addr; // M
 } symbol;
 
+token_type whatType(char *str);
 bool isReserved(char *str);
 bool isSymbol(char symbol);
 void print_token(int tokenRep);
 
 FILE *fpin, *fpout;
-lexeme list[MAX_CODE_LENGTH];
+token list[MAX_CODE_LENGTH];
 instruction ins[MAX_CODE_LENGTH];
 symbol symbol_table[MAX_SYMBOL_TABLE_SIZE];
 int ins_cntr = 0;
+char reserved[14][9] = { "const", "var", "procedure", "call", "begin", "end",
+                         "if", "then", "else", "while", "do", "read", "write",
+                         "odd" };
 
-// End of header
+/////////////////////////////// End of header /////////////////////////////////
 
 // Returns the address of a lexeme
-lexeme *createLexeme(token_type t, char *str)
+token *createToken(token_type t, char *str)
 {
-	lexeme *l = malloc(1 * sizeof(lexeme));
-	l->type = t;
-  l->lex = malloc(sizeof(char) * MAX_IDENT_LENGTH);
-  strcpy(l->lex, str);
-	return l;
+	token *tptr = malloc(1 * sizeof(token));
+	tptr->type = t;
+  strcpy(tptr->str, str);
+	return tptr;
 }
 
 // Edits the string passed to it to delete all text between the '/*' and '*/'
@@ -100,8 +98,7 @@ char* trim(char *str)
       {
         rp++;
       }
-      //rp += 2; // rp = rp + 2
-      lp= rp;
+      lp = rp;
     }
     trimmed[i] = str[lp];
     i++;
@@ -110,9 +107,11 @@ char* trim(char *str)
   return trimmed;
 }
 
-int parse(char *code, lexeme list[], FILE *fpout)
+// Given a string representing PL/0 code (without comments), identifies lexemes
+// and stores them in a table
+int parse(char *code)
 {
-  lexeme *lexptr;
+  token *tptr;
   int lp = 0, rp, length, i, listIndex = 0;
   char buffer[MAX_CODE_LENGTH];
   token_type t;
@@ -120,7 +119,8 @@ int parse(char *code, lexeme list[], FILE *fpout)
   // looping through string containing input
   while (code[lp] != '\0')
   {
-    // ignoring whitespace
+    int a = 0;
+    // Ignoring whitespace
     if (isspace(code[lp]))
     {
       lp++;
@@ -139,7 +139,7 @@ int parse(char *code, lexeme list[], FILE *fpout)
       // checking for ident length error
       if (length > MAX_IDENT_LENGTH)
       {
-        fprintf(fpout, "Err: ident length too long\n");
+        printf("Err: ident length too long\n");
         return 0;
       }
 
@@ -154,16 +154,15 @@ int parse(char *code, lexeme list[], FILE *fpout)
       // adds reserved words to lexeme array
       if (isReserved(buffer))
       {
-        t = isReserved(buffer);
-        lexptr = createLexeme(t, buffer);
-        list[listIndex++] = *lexptr;
+        t = whatType(buffer);
+        tptr = createToken(t, buffer);
+        list[listIndex++] = *tptr;
       }
-      // must be a identifier at this line
       else
       {
         t = identsym;
-        lexptr = createLexeme(t, buffer);
-        list[listIndex++] = *lexptr;
+        tptr = createToken(t, buffer);
+        list[listIndex++] = *tptr;
       }
     }
     else if (isdigit(code[lp]))
@@ -179,14 +178,14 @@ int parse(char *code, lexeme list[], FILE *fpout)
       }
       length = rp - lp;
 
-      // checking for ident length error
+      // Checking for ident length error
       if (length > MAX_NUM_LENGTH)
       {
-        fprintf(fpout, "Err: number length too long\n");
+        printf("Err: number length too long\n");
         return 0;
       }
 
-      // creating substring
+      // Creating substring
       for (i = 0; i < length; i++)
       {
         buffer[i] = code[lp + i];
@@ -195,9 +194,10 @@ int parse(char *code, lexeme list[], FILE *fpout)
       lp = rp;
 
       t = numbersym;
-      lexptr = createLexeme(t, buffer);
-      list[listIndex++] = *lexptr;
+      tptr = createToken(t, buffer);
+      list[listIndex++] = *tptr;
     }
+    // Creating a lexeme for the symbol//call createlex w t and sym
     else if (isSymbol(code[lp]))
     {
       if (code[lp] == '+')
@@ -238,10 +238,26 @@ int parse(char *code, lexeme list[], FILE *fpout)
       }
       if (code[lp] == '<')
       {
+        if(code[lp+1] == '>')
+        {
+          t = 10;
+          a=1;
+        }
+
+        if(code[lp+1] == '=')
+        {
+          t = 12;
+          a=1;
+        }
         t = 11;
       }
       if (code[lp] == '>')
       {
+        if(code[lp+1] == '=')
+        {
+          t = 14;
+          a=1;
+        }
         t = 13;
       }
       if (code[lp] == ';')
@@ -250,35 +266,41 @@ int parse(char *code, lexeme list[], FILE *fpout)
       }
       if (code[lp] == ':')
       {
+        if(code[lp+1] == '=')
+        {
+          t = 20;
+          a=1;
+        }
         t = 20;
       }
 
       buffer[0] = code[lp];
       buffer[1] = '\0';
-      lexptr = createLexeme(t, buffer);
-      list[listIndex++] = *lexptr;
-
+      tptr = createToken(t, buffer);
+      list[listIndex++] = *tptr;
       lp++;
     }
   }
+  free(tptr);
   return listIndex;
 }
 
+// Returns true if the character sent is a valid symbol or false otherwise
 bool isSymbol(char symbol)
 {
   char validsymbols[13] = {'+', '-', '*', '/', '(', ')', '=', ',', '.', '<', '>',  ';', ':'};
 
-  for(int i=0; i<13; i++)
+  for (int i = 0; i < 13; i++)
   {
     if(symbol == validsymbols[i])
     {
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 
-// return true if string is a valid number and false otherwise
+// Returns true if string is a valid number and false otherwise
 bool isNumber(char *str)
 {
   int i, len = strlen(str);
@@ -297,14 +319,9 @@ bool isNumber(char *str)
   return true;
 }
 
-// return true if the string is a reserved keyword and false otherwise
+// Returns true if the string is a reserved keyword and false otherwise
 bool isReserved(char *str)
 {
-  // Table of reserved word names
-  char reserved[14][9] = { "const", "var", "procedure", "call", "begin", "end",
-                           "if", "then", "else", "while", "do", "read", "write",
-                           "odd" };
-
   if (str[0] == 'b')
   {
     if (strcmp(reserved[4], str) == 0)
@@ -397,13 +414,10 @@ bool isReserved(char *str)
   return false;
 }
 
-token_type reserved(char *str)
+// Given a string, determines if that string represents a type of token and if so,
+// returns the value of that token
+token_type whatType(char *str)
 {
-  // Table of reserved word names
-  char reserved[14][9] = { "const", "var", "procedure", "call", "begin", "end",
-                           "if", "then", "else", "while", "do", "read", "write",
-                           "odd" };
-
   if (str[0] == 'b')
   {
     if (strcmp(reserved[4], str) == 0)
@@ -493,11 +507,12 @@ token_type reserved(char *str)
       return 31;
     }
   }
-  return false;
+  // If the input does not match any of our reserved words, returns the nulsym
+  return 1;
 }
 
 // Prints data to output file as requested by command line arguments
-void output(lexeme list[], instruction ins[], int count, FILE *fpout, bool l, bool a, bool v)
+void output(token list[], instruction ins[], int count, FILE *fpout, bool l, bool a, bool v)
 {
   int i = 0;
   char buffer[13] = {'\0'};
@@ -516,7 +531,7 @@ void output(lexeme list[], instruction ins[], int count, FILE *fpout, bool l, bo
     fprintf(fpout, "List of lexemes:\n\n");
     for (i = 0; i < count; i++)
     {
-      fprintf(fpout, "%s", list[i].lex);
+      fprintf(fpout, "%s", list[i].str);
       (i % 10 == 0) ? fprintf(fpout, "\n") : fprintf(fpout, "\t");
     }
     fprintf(fpout, "\n\nSymbolic representation:\n\n");
@@ -650,9 +665,10 @@ int main(int argc, char **argv)
   token current;
   bool l = false, a = false, v = false;
 
-  // output for user that makes error entering command line arguments
+  // In case user doesn't know how to use program
   if (argc < 3 || argc > 6)
   {
+    printf("Err: incorrect number of arguments\nTo use compiler, type: ./a.out <inputfilename.txt> <outputfilename.txt> <up to one of each of the following commands: -l -a -v>\n");
     return 0;
   }
   if (argc == 4)
@@ -684,7 +700,7 @@ int main(int argc, char **argv)
   for (i = 0; i < MAX_CODE_LENGTH; i++)
   {
     list[i].type = nulsym;
-    list[i].lex = NULL;
+    list[i].str[0] = '\0';
   }
 
   // Preventing segfault by checking for failures to open files
@@ -710,7 +726,7 @@ int main(int argc, char **argv)
   strcpy(code, trim(code));
   // Filling lexeme array and capturing number of elements of lexeme array
   // (or 0 if parse found errors)
-  // called parse here
+  count = parse(code);
 
   if (count == 0)
   {
@@ -720,7 +736,6 @@ int main(int argc, char **argv)
 
   // Printing output
   output(list, ins, count, fpout, l, a, v);
-  // called block here
 
   fclose(fpin);
   fclose(fpout);
