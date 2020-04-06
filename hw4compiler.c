@@ -107,8 +107,12 @@ char* trim(char *str)
   return trimmed;
 }
 
-// Given a string representing PL/0 code (without comments), identifies lexemes
-// and stores them in a table
+// This section [will hold] the lexical analyzer and parser.
+// The lexical analyzer tokenizes the code and labels the tokens as
+// identifiers, reserved words, operators, and special symbols. It then checks
+// for lexical errors only (order of words and symbols).
+// The parser evaluates lexemes, creates a symbol table, and looks for syntax
+// errors only.
 int parse(char *code)
 {
   token *tptr;
