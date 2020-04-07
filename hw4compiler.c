@@ -516,7 +516,7 @@ token_type whatType(char *str)
 }
 
 // Prints data to output file as requested by command line arguments
-void output(token list[], instruction ins[], int count, FILE *fpout, bool l, bool a, bool v)
+void output(int count, bool l, bool a, bool v)
 {
   int i = 0;
   char buffer[13] = {'\0'};
@@ -739,9 +739,10 @@ int main(int argc, char **argv)
   }
 
   // Printing output
-  output(list, ins, count, fpout, l, a, v);
+  output(count, l, a, v);
 
   fclose(fpin);
   fclose(fpout);
   return 0;
 }
+
