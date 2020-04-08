@@ -289,6 +289,16 @@ int parse(char *code)
   return listIndex;
 }
 
+void program(symbol* symbol_table, instruction* code)
+{
+  current = getNextToken();
+  block(0,0, symbol_table, code);
+  if(current != periodsym)
+  {
+    print_error(9);
+  }
+}
+
 void block(int level, int tableIndex, symbol* symbol_table)
 {
   if(MAX_LEXI_LEVELS < level)
