@@ -729,6 +729,59 @@ void output(int count, bool l, bool a, bool v)
   }
 }
 
+void condition(int level, int* ptableindex, instruction* code, symbol* symbol_table) 
+{
+  
+  if( current == oddsym) 
+  {
+    current = getNextToken();
+    expression(level, ptableindex, code, symbol_table);
+    emit(2, 0, 6, code); 
+  }
+
+  int rel_switch;
+  else 
+  {
+    expression(level, ptableindex, code, symbol_table);
+    if( (current != eqsym) && ( current != neqsym) && (current != lessym) && ( current !=leqsym) && ( current != gtrsym) && (current != geqsym) ) 
+    {
+      print_error(20);
+    }
+
+    else 
+    {
+      rel_switch = current;
+      current = getNextToken();
+      expression(level, ptableindex, code, symbol_table);
+
+      if(rel_switch == 9)
+      {
+        emit(2,0,8, code); 
+      }
+      if(rel_switch == 10)
+      {
+        emit(2,0,9, code); 
+      }
+      if(rel_switch == 11)
+      {
+        emit(2,0,10, code); 
+      }
+      if(rel_switch == 12)
+      {
+        emit(2,0,11, code); 
+      }
+      if(rel_switch == 13)
+      {
+        emit(2,0,12, code); 
+      }
+      if(rel_switch == 14)
+      {
+        emit(2,0,13, code); 
+      }
+    }
+}
+
+
 // Given the value of token symbol, prints the type of token symbol
 void print_token(int tokenRep)
 {
