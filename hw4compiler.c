@@ -289,6 +289,40 @@ int parse(char *code)
   return listIndex;
 }
 
+void constdeclaration(int level, int *ptableIndex, int *pdataindex, symbol* symbol_table) 
+{  
+    if (current == identsym) 
+    {
+        current = getNextToken();
+        if( (current == eqsym) || (current == becomessym) ) 
+        {
+            if( current ==becomessym ) 
+            {
+                print_error(1); 
+            }
+            current = getNextToken();
+            if( current == numbersym) 
+            {
+                enter(1,ptableindex, pdataindex, level, symbol_table);
+                current = getNextToken();
+            }
+          } 
+        }
+}
+
+void vardeclaration(int level, int *ptableindex, int *pdataindex, symbol* symbol_table) 
+{    
+    if( current == identsym ) 
+    {
+        enter( 2, ptableindex, pdataindex, level, symbol_table);
+        current = getNextToken();
+    }
+    else
+    {
+        print_error(4);
+    } 
+}
+
 void program(symbol* symbol_table, instruction* code)
 {
   current = getNextToken();
