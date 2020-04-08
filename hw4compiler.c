@@ -289,6 +289,106 @@ int parse(char *code)
   return listIndex;
 }
 
+void block(int level, int tableIndex, symbol* symbol_table)
+{
+  if(MAX_LEXI_LEVELS < level)
+  {
+    findError(26);
+  }
+
+  int dataIndex = 4, tableIndex2, cx2;
+  tableIndex2 = tableIndex;
+  symbol_table[tableIndex].addr = cx;
+  emit(7,0,0, code); 
+
+  
+  
+   while( (current == constsym) || (current == varsym) || (current == procsym) )
+   {
+       if (current == constsym) 
+       {
+           current = getNextToken();
+            while (current == identsym) 
+            {
+               constdeclaration(level, &tableIndex, &dataIndex, symbol_table);
+               while(current == commasym) 
+               {
+                   current = getNextToken();
+                   constdeclaration(level, &tableIndex, &dataIndex, symbol_table);
+               }
+               if(current == semicolonsym) {
+                   current = getNextToken();
+               }
+               else 
+               {
+                   print_error(5);
+               }
+           }
+       }
+       if (current == varsym) 
+       {
+           current = getNextToken();
+           while(current == identsym) 
+           {
+               vardeclaration(level, &tableIndex, &dataIndex, symbol_table);
+               while (token == commasym) 
+               {
+                   current = getNextToken();
+                   vardeclaration(level, &tableIndex, &dataIndex, symbol_table);
+               }
+               if(current == semicolonsym) 
+               {
+                   current = getNextToken();
+               }
+               else 
+               {
+                   print_error(5); 
+               }
+           } 
+       }
+       while(current == procsym) 
+       {
+           current = getNextToken();
+
+           if(current == identsym) 
+           {
+               enter(3, &tableIndex, &dataIndex, level, symbol_table);
+               current = getNextToken();
+           }
+           else 
+           {
+               print_error(4);  
+           }
+           if(current == semicolonsym) 
+           {
+               current = getNextToken(ifp);
+           }
+           else 
+           {
+               print_error(5); 
+           }
+          
+           block(level+1, tableIndex, tableIndex, code); 
+           if(current == semicolonsym) 
+           {
+               current = getNextToken();
+           }
+           else 
+           {
+               print_error(5); 
+           }
+           }
+      }
+   code[symbol_table[tableIndex2].addr].m = cx;
+   symbol_table[tableIndex2].addr = cx;
+   cx2 = cx;
+   //6 = inc 
+   emit(6, 0, dataIndex, code);
+   statement(level, &tableIndex, code, symbol_table);
+   emit(2, 0, 0, code); 
+}}
+
+
 // Returns true if the character sent is a valid symbol or false otherwise
 bool isSymbol(char symbol)
 {
