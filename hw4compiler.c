@@ -62,23 +62,42 @@ bool isSymbol(char symbol);
 void print_token(int tokenRep);
 
 FILE *fpin, *fpout;
-token list[MAX_CODE_LENGTH];
+token list[MAX_CODE_LENGTH], current;
 instruction ins[MAX_CODE_LENGTH];
 symbol symbol_table[MAX_SYMBOL_TABLE_SIZE];
-int ins_cntr = 0;
+int insIndex = 0, listIndex = 0;
 char reserved[14][9] = { "const", "var", "procedure", "call", "begin", "end",
                          "if", "then", "else", "while", "do", "read", "write",
                          "odd" };
 
 /////////////////////////////// End of header /////////////////////////////////
 
-// Returns the address of a lexeme
+// Returns the address of a token
 token *createToken(token_type t, char *str)
 {
 	token *tptr = malloc(1 * sizeof(token));
 	tptr->type = t;
   strcpy(tptr->str, str);
 	return tptr;
+}
+
+// Why does this need the file pointer if it is never used?
+token getNextToken(FILE* ifp)
+{
+  int num;
+  // token is an int representing token type
+  current = list[listIndex];
+
+  //Takes care of variables, always represented by "2 | variable"
+  if (current.type == 2)
+    strcpy(current.str, list[listIndex].str);
+  else if (current.type == 3)
+    // num is the number associated with number tokens
+    num = atoi(list[listIndex].str);
+    current.type = num;
+
+  listIndex++;
+  return current;
 }
 
 // Edits the string passed to it to delete all text between the '/*' and '*/'
@@ -98,7 +117,7 @@ char* trim(char *str)
       {
         rp++;
       }
-      lp = rp;
+      lp = rp + 2;
     }
     trimmed[i] = str[lp];
     i++;
@@ -116,14 +135,15 @@ char* trim(char *str)
 int parse(char *code)
 {
   token *tptr;
-  int lp = 0, rp, length, i, listIndex = 0;
+  int a, lp = 0, rp, length, i, lev = 0, dx = 0, tx = 0;
   char buffer[MAX_CODE_LENGTH];
   token_type t;
 
   // looping through string containing input
   while (code[lp] != '\0')
   {
-    int a = 0;
+    a = 0;
+
     // Ignoring whitespace
     if (isspace(code[lp]))
     {
@@ -143,7 +163,7 @@ int parse(char *code)
       // checking for ident length error
       if (length > MAX_IDENT_LENGTH)
       {
-        printf("Err: ident length too long\n");
+        fprintf(fpout, "Err: ident length too long\n");
         return 0;
       }
 
@@ -185,7 +205,7 @@ int parse(char *code)
       // Checking for ident length error
       if (length > MAX_NUM_LENGTH)
       {
-        printf("Err: number length too long\n");
+        fprintf(fpout, "Err: number length too long\n");
         return 0;
       }
 
@@ -242,27 +262,27 @@ int parse(char *code)
       }
       if (code[lp] == '<')
       {
+        t = 11;
         if(code[lp+1] == '>')
         {
           t = 10;
-          a=1;
+          a = 1;
         }
 
         if(code[lp+1] == '=')
         {
           t = 12;
-          a=1;
+          a = 1;
         }
-        t = 11;
       }
       if (code[lp] == '>')
       {
+        t = 13;
         if(code[lp+1] == '=')
         {
           t = 14;
-          a=1;
+          a = 1;
         }
-        t = 13;
       }
       if (code[lp] == ';')
       {
@@ -270,16 +290,23 @@ int parse(char *code)
       }
       if (code[lp] == ':')
       {
-        if(code[lp+1] == '=')
-        {
-          t = 20;
-          a=1;
-        }
+        // We can assume : is always followed by =
         t = 20;
+        a = 1;
+      }
+      else
+      {
+        fprintf(fpout, "Err: Invalid symbol\n");
+        return 0;
       }
 
       buffer[0] = code[lp];
       buffer[1] = '\0';
+      if (a = 1)
+      {
+        buffer[2] = '\0';
+        buffer[1] = code[++lp];
+      }
       tptr = createToken(t, buffer);
       list[listIndex++] = *tptr;
       lp++;
@@ -533,10 +560,13 @@ void output(int count, bool l, bool a, bool v)
   if (l == true)
   {
     fprintf(fpout, "List of lexemes:\n\n");
-    for (i = 0; i < count; i++)
+    for(int i=0; i<count; i++)
     {
-      fprintf(fpout, "%s", list[i].str);
-      (i % 10 == 0) ? fprintf(fpout, "\n") : fprintf(fpout, "\t");
+      fprintf(fpout, "%d ", list[i].type);
+      if(list[i].type == 2 || list[i].type == 3)
+      {
+        fprintf(fpout, "%s ", list[i].str);
+      }
     }
     fprintf(fpout, "\n\nSymbolic representation:\n\n");
     for (i = 0; i < count; i++)
@@ -564,7 +594,7 @@ void output(int count, bool l, bool a, bool v)
   {
     // Converting instruction array to int array
     int code[MAX_CODE_LENGTH];
-    for (i = 0; i < ins_cntr; i++)
+    for (i = 0; i < insIndex; i++)
     {
       code[i + 1] = ins[i].op;
       code[i + 2] = ins[i].r;
@@ -573,15 +603,125 @@ void output(int count, bool l, bool a, bool v)
     }
 
     // Printing generated code
-    for (i = 0; i < ins_cntr; i++)
+    for (i = 0; i < insIndex; i++)
     {
       fprintf(fpout, "%d", code[i]);
       (i % 4 == 0) ? fprintf(fpout, "\n") : fprintf(fpout, "\t");
     }
 
     // Printing virtual machine execution trace
-    // print_stack(code, ins_cntr);
+    // print_stack(code, insIndex);
     // executionCycle(code);
+  }
+}
+
+// Prints a unique error message for each error code
+void print_error(int errorNum)
+{
+  switch( errorNum )
+  {
+    case 1:
+      printf("Use = instead of := \n");
+      break;
+
+    case 2:
+      printf("= must be followed by a number \n");
+      break;
+
+    case 3:
+      printf("Identifier must be followed by = \n");
+      break;
+
+    case 4:
+      printf("const, int, procedure must be followed by identifier\n");
+      break;
+
+    case 5:
+      printf("Semicolon or comma missing\n");
+      break;
+
+    case 6:
+      printf("Incorrect symbol after procedure declaration\n");
+      break;
+
+    case 7:
+      printf("Statement expected\n");
+      break;
+
+    case 8:
+      printf("Incorrect symbol after statement part in block\n");
+      break;
+
+    case 9:
+      printf("Period expected\n");
+      break;
+
+    case 10:
+      printf("Semicolon between statements missing\n");
+      break;
+
+    case 11:
+      printf("Undeclared identifier \n");
+      break;
+
+    case 12:
+      printf("Assignment to constant or procedure is not allowed\n");
+      break;
+
+    case 13:
+      printf("Assignment operator expected\n");
+      break;
+
+    case 14:
+      printf("Call must be followed by an identifier\n");
+      break;
+
+    case 15:
+      printf("Call of a constant or variable is meaningless\n");
+      break;
+
+    case 16:
+      printf("Then expected\n");
+      break;
+
+    case 17:
+      printf("Semicolon or } expected \n");
+      break;
+
+    case 18:
+      printf("Do expected\n");
+      break;
+
+    case 19:
+      printf("Incorrect symbol following statement\n");
+      break;
+
+    case 20:
+      printf("Relational operator expected\n");
+      break;
+
+    case 21:
+      printf("Expression must not contain a procedure identifier\n");
+      break;
+
+    case 22:
+      printf("Right parenthesis missing\n");
+      break;
+
+    case 23:
+      printf("The preceding factor cannot begin with this symbol\n");
+      break;
+
+    case 24:
+      printf("An expression cannot begin with this symbol\n");
+      break;
+
+    case 25:
+      printf("This number is too large\n");
+      break;
+
+    default:
+    printf("Invalid instruction");
   }
 }
 
@@ -664,7 +804,7 @@ int main(int argc, char **argv)
   fpin = fopen(argv[1], "r");
   fpout = fopen(argv[2], "w+");
   char aSingleLine[MAX_CODE_LENGTH], code[MAX_CODE_LENGTH] = {'\0'},
-       trimmed[MAX_CODE_LENGTH] = {'\0'}, commands[3][3];
+       trimmed[MAX_CODE_LENGTH] = {'\0'}, commands[3][3], c;
   int count, i, tokens[MAX_SYMBOL_TABLE_SIZE] = {'\0'};
   token current;
   bool l = false, a = false, v = false;
@@ -720,14 +860,14 @@ int main(int argc, char **argv)
   }
 
   // Scanning file into code array
-  while(!feof(fpin))
+  while(fgets(aSingleLine, MAX_CODE_LENGTH, fpin))
   {
-    fgets(aSingleLine, MAX_CODE_LENGTH, fpin);
     strcat(code, aSingleLine);
   }
 
   // Removing all comments from code
   strcpy(code, trim(code));
+
   // Filling lexeme array and capturing number of elements of lexeme array
   // (or 0 if parse found errors)
   count = parse(code);
@@ -738,6 +878,7 @@ int main(int argc, char **argv)
     return 0;
   }
 
+  printf("\n\n%s\n\n", code); // debugging
   // Printing output
   output(count, l, a, v);
 
@@ -745,4 +886,3 @@ int main(int argc, char **argv)
   fclose(fpout);
   return 0;
 }
-
