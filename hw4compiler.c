@@ -60,12 +60,13 @@ token_type whatType(char *str);
 bool isReserved(char *str);
 bool isSymbol(char symbol);
 void print_token(int tokenRep);
+void print_error(int errorNum);
 
 FILE *fpin, *fpout;
 token list[MAX_CODE_LENGTH], current;
 instruction ins[MAX_CODE_LENGTH];
 symbol symbol_table[MAX_SYMBOL_TABLE_SIZE];
-int insIndex = 0, listIndex = 0;
+int insIndex = 0, listIndex = 0, cx;
 char reserved[14][9] = { "const", "var", "procedure", "call", "begin", "end",
                          "if", "then", "else", "while", "do", "read", "write",
                          "odd" };
@@ -82,7 +83,7 @@ token *createToken(token_type t, char *str)
 }
 
 // Why does this need the file pointer if it is never used?
-token getNextToken(FILE* ifp)
+token getNextToken()
 {
   int num;
   // token is an int representing token type
@@ -105,7 +106,7 @@ token getNextToken(FILE* ifp)
 char* trim(char *str)
 {
   int lp = 0, rp, diff, i, len = strlen(str);
-  i=0;
+  i = 0;
   char *trimmed = malloc(sizeof(char) * MAX_CODE_LENGTH);
 
   while (str[lp] != '\0')
@@ -139,7 +140,7 @@ int parse(char *code)
   char buffer[MAX_CODE_LENGTH];
   token_type t;
 
-  // looping through string containing input
+  // looping through string containing input and filling list of tokens
   while (code[lp] != '\0')
   {
     a = 0;
@@ -221,7 +222,6 @@ int parse(char *code)
       tptr = createToken(t, buffer);
       list[listIndex++] = *tptr;
     }
-    // Creating a lexeme for the symbol//call createlex w t and sym
     else if (isSymbol(code[lp]))
     {
       if (code[lp] == '+')
@@ -314,6 +314,346 @@ int parse(char *code)
   }
   free(tptr);
   return listIndex;
+}
+
+// program description
+void program(symbol* symbol_table, instruction* code)
+{
+  current = getNextToken();
+  block(0,0, symbol_table, code);
+  if(current != periodsym)
+  {
+    print_error(9);
+  }
+}
+
+// block description
+void block(int level, int tableIndex, symbol* symbol_table)
+{
+  if(MAX_LEXI_LEVELS < level)
+  {
+    findError(26);
+  }
+
+  int dataIndex = 4, tableIndex2, cx2;
+  tableIndex2 = tableIndex;
+  symbol_table[tableIndex].addr = cx;
+  emit(7,0,0, code);
+
+
+
+   while( (current == constsym) || (current == varsym) || (current == procsym) )
+   {
+       if (current == constsym)
+       {
+           current = getNextToken();
+            while (current == identsym)
+            {
+               constdeclaration(level, &tableIndex, &dataIndex, symbol_table);
+               while(current == commasym)
+               {
+                   current = getNextToken();
+                   constdeclaration(level, &tableIndex, &dataIndex, symbol_table);
+               }
+               if(current == semicolonsym) {
+                   current = getNextToken();
+               }
+               else
+               {
+                   print_error(5);
+               }
+           }
+       }
+       if (current == varsym)
+       {
+           current = getNextToken();
+           while(current == identsym)
+           {
+               vardeclaration(level, &tableIndex, &dataIndex, symbol_table);
+               while (token == commasym)
+               {
+                   current = getNextToken();
+                   vardeclaration(level, &tableIndex, &dataIndex, symbol_table);
+               }
+               if(current == semicolonsym)
+               {
+                   current = getNextToken();
+               }
+               else
+               {
+                   print_error(5);
+               }
+           }
+       }
+       while(current == procsym)
+       {
+           current = getNextToken();
+
+           if(current == identsym)
+           {
+               enter(3, &tableIndex, &dataIndex, level, symbol_table);
+               current = getNextToken();
+           }
+           else
+           {
+               print_error(4);
+           }
+           if(current == semicolonsym)
+           {
+               current = getNextToken(ifp);
+           }
+           else
+           {
+               print_error(5);
+           }
+
+           block(level+1, tableIndex, tableIndex, code);
+           if(current == semicolonsym)
+           {
+               current = getNextToken();
+           }
+           else
+           {
+               print_error(5);
+           }
+           }
+      }
+   code[symbol_table[tableIndex2].addr].m = cx;
+   symbol_table[tableIndex2].addr = cx;
+   cx2 = cx;
+   //6 = inc
+   emit(6, 0, dataIndex, code);
+   statement(level, &tableIndex, code, symbol_table);
+   emit(2, 0, 0, code);
+}
+
+// Statement
+void statement(int lev, int *ptx)
+{
+  int i, cx1, cx2;
+  if (current.type == identsym)
+  {
+    i = position(current.str, ptx, symbol_table, lev);
+    if (i == 0)
+    {
+      print_error(11); //Undeclared identifier.
+    }
+    else if (symbol_table[i].kind != 2)
+    {
+      print_error(12); //Assignment to constant or procedure is not allowed
+      i = 0;
+    }
+    current = getNextToken();
+    if (current.type == becomessym)
+    {
+      current = getNextToken();
+    }
+    else
+    {
+      print_error(13); //Assignment operator expected.
+    }
+    expression(lev, ptx, ins, symbol_table);
+    if (i != 0)
+    {
+      emit(4, lev-table[i].level, table[i].addr, ins); // 4 is STO for op, lev-table[i].level is for L, table[i].adr for M
+      // I don't know what his lev-table is but I think whatever he is doing
+      // with it, we can implement it in a better way
+    }
+  }
+  else if (current.type == callsym)
+  {
+    current = getNextToken();
+    if (token != identsym)
+    {
+      print_error(14); //call must be followed by an identifier
+    }
+    else
+    {
+      i = position(current.str, ptx, symbol_table, lev);
+      if(i == 0)
+      {
+        print_error(11); //Undeclared identifier.
+      }
+      else if (table[i].kind==3)
+      {//proc
+        emit(5,lev-table[i].level, table[i].addr, ins); // 5 is CAL for op, lev-table[i].level is for L, table[i].adr for M
+          //statement::= ["call" ident | ...]
+      }
+      else
+      {
+        print_error(15); //Call of a constant or variable is meaningless
+      }
+      current = getNextToken();
+    }
+  }
+  else if (current.type == ifsym)
+  {
+    current = getNextToken();
+    condition(lev, ptx, ins, symbol_table);
+    if (current.type == thensym)
+    {
+      current = getNextToken();
+    }
+    else
+    {
+      print_error(16);  // then expected
+    }
+
+    cx1 = cx;
+    emit(8, 0, 0, ins); // 8 is JPC for op, 0 is for L and 0 for M
+    statement(lev, ptx, ins, symbol_table);
+
+    /**working on else**/
+    if (current.type == elsesym)
+    {
+      current = getNextToken();
+
+      code[cx1].m = cx+1; //jumps past if
+      cx1 = cx;
+      emit(7, 0, 0, ins); // 7 is JMP for op, 0 is for L and cx1 for M
+      //updates JPC M value
+      statement(lev, ptx, ins, symbol_table);
+    }
+    code[cx1].m = cx; //jumps past else (if theres an else statement) otherwise jumps past if
+  }
+
+  //begin <condition> end <statement>
+  else if (current.type == beginsym)
+  {
+    current = getNextToken();
+    statement(lev, ptx, ins, symbol_table);
+
+     /**changed**/
+     while (current.type == semicolonsym)
+     {
+       current = getNextToken();
+       statement(lev, ptx, ins, symbol_table);
+     }
+
+    /**original**/
+    /*while((token==semicolonsym)||(token==beginsym)||
+     (token==ifsym)||(token==elsesym)||(token==whilesym)||
+          (token==callsym)||(token==writesym)||(token==readsym)) {
+        if (token==semicolonsym) {
+            token = getNextToken();
+        }
+        else {
+            error(10);  //Semicolon between statements missing.
+        }
+        statement(lev,ptx, ifp, code, table);
+    }*/ //end original
+    if (current.type == endsym)
+    {
+      current = getNextToken();
+    }
+    else
+    {
+      print_error(17);  //Semicolon or } expected.
+    }
+  }
+
+  //while <condition> do <statement>
+  else if (current.type == whilesym)
+  {
+    cx1 = cx;
+    current = getNextToken();
+    condition(lev, ptx, ins, symbol_table);
+    cx2 = cx;
+    emit(8, 0, 0, ins); // 8 is JPC for op, 0 is for L and 0 for M
+    if (current.type == dosym)
+    {
+      current = getNextToken();
+    }
+    else
+    {
+      print_error(18);  // do expected
+    }
+    statement(lev, ptx, ins, symbol_table);
+    emit(7, 0, cx1, ins); // 7 is JMP for op, 0 is for L and cx1 for M, jump to instruction cx1
+    code[cx2].m = cx;
+  }
+
+  //write needs to write
+  else if (current.type == writesym)
+  {
+    current = getNextToken();
+    expression(lev, ptx, ifp, code, table);
+    emit(9,0,1, code); // 9 is SIO1 for op, 0 is for L and 1 for M, write the top stack element to the screen
+  }
+  //read needs to read and STO
+  else if (current.type == readsym)
+  {
+    current = getNextToken();
+    emit(10, 0, 2, code); // 10 is SIO2 for op, 0 is for L and 1 for M, write the top stack element to the screen
+    i=position(current.str, ptx, symbol_table, lev);
+    if (i == 0)
+    {
+      print_error(11); //Undeclared identifier.
+    }
+    else if (symbol_table[i].kind != 2)
+    { //var
+      print_error(12); //Assignment to constant or procedure is not allowed
+      i = 0;
+    }
+    if (i != 0)
+    {
+      emit(4, lev-table[i].level, table[i].addr, code); // 4 is STO for op, lev-table[i].level is for L, table[i].adr for M
+    }
+     current = getNextToken();
+  }
+}
+
+// condition description
+void condition(int level, int* ptableindex, instruction* code, symbol* symbol_table)
+{
+
+  if( current == oddsym)
+  {
+    current = getNextToken();
+    expression(level, ptableindex, code, symbol_table);
+    emit(2, 0, 6, code);
+  }
+
+  int rel_switch;
+  else
+  {
+    expression(level, ptableindex, code, symbol_table);
+    if( (current != eqsym) && ( current != neqsym) && (current != lessym) && ( current !=leqsym) && ( current != gtrsym) && (current != geqsym) )
+    {
+      print_error(20);
+    }
+
+    else
+    {
+      rel_switch = current;
+      current = getNextToken();
+      expression(level, ptableindex, code, symbol_table);
+
+      if(rel_switch == 9)
+      {
+        emit(2,0,8, code);
+      }
+      if(rel_switch == 10)
+      {
+        emit(2,0,9, code);
+      }
+      if(rel_switch == 11)
+      {
+        emit(2,0,10, code);
+      }
+      if(rel_switch == 12)
+      {
+        emit(2,0,11, code);
+      }
+      if(rel_switch == 13)
+      {
+        emit(2,0,12, code);
+      }
+      if(rel_switch == 14)
+      {
+        emit(2,0,13, code);
+      }
+    }
 }
 
 // Returns true if the character sent is a valid symbol or false otherwise
