@@ -65,7 +65,7 @@ FILE *fpin, *fpout;
 token list[MAX_CODE_LENGTH];
 instruction ins[MAX_CODE_LENGTH];
 symbol symbol_table[MAX_SYMBOL_TABLE_SIZE];
-int ins_cntr = 0, diff, prevdiff = 0;
+int ins_cntr = 0, diff, cx, cx0, prevdiff = 0;
 char reserved[14][9] = { "const", "var", "procedure", "call", "begin", "end",
                          "if", "then", "else", "while", "do", "read", "write",
                          "odd" };
