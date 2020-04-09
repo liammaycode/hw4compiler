@@ -65,7 +65,7 @@ FILE *fpin, *fpout;
 token list[MAX_CODE_LENGTH];
 instruction ins[MAX_CODE_LENGTH];
 symbol symbol_table[MAX_SYMBOL_TABLE_SIZE];
-int ins_cntr = 0;
+int ins_cntr = 0, diff, prevdiff = 0;
 char reserved[14][9] = { "const", "var", "procedure", "call", "begin", "end",
                          "if", "then", "else", "while", "do", "read", "write",
                          "odd" };
@@ -106,6 +106,91 @@ char* trim(char *str)
   }
   return trimmed;
 }
+
+
+void emit(int op, int l, int m, instruction* code)
+{
+  if(MAX_CODE_LENGTH < cx)
+  {
+    printf("The program contains too much code.\n");
+  }
+  else
+  {
+      code[cx].op = op;
+      code[cx].l = l;
+      code[cx].m = m;
+      //increment cx
+      cx = cx + 1;
+  }
+}
+
+void enter(int k, int* ptableIndex, int* pdataindex, int level, symbol* symbol_table)
+{
+  int x=0;
+  ptableIndex++;
+  char lastIdentifier = id;
+  int length = strlen(id);
+  while(x <= length)
+  {
+    symbol_table[*ptableIndex].name[x] = *lastIdentifier;
+    x++;
+    lastIdentifier++;
+  }
+
+  symbol_table[*ptableIndex].kind = k;
+
+  
+    switch(k)
+    {
+      case 1: 
+        symbol_table[*ptableIndex].value = num;
+        break;
+
+      case 2:
+        symbol_table[*ptableIndex].level = level;
+        symbol_table[*ptableIndex].addr = *pdataindex;
+        (*pdataindex)++;
+        break;
+        
+      default:
+      symbol_table[*ptableIndex].level = level;
+      
+    }
+  
+}
+
+int position(char *id, int ptableIndex, symbol* symbol_table, int levels)
+{
+  int pos, prevdiff;
+  int s = *ptableIndex, count = 0;
+  while(s!=0)
+  {
+    if(strcmp(symbol_table[s].name, id) == 0)
+    {
+      if(symbol_table[s].level <= levels)
+      {
+        if(diff !=0)
+        {
+          prevdiff = diff;
+        }
+
+        diff = levels - symbol_table[s].level;
+
+        if(diff == 0 || diff < prevdiff)
+        {
+          pos = s;
+        }
+
+        count++;
+      }
+    }
+
+    s--;
+  }
+
+  return pos;
+}
+
 
 // This section [will hold] the lexical analyzer and parser.
 // The lexical analyzer tokenizes the code and labels the tokens as
