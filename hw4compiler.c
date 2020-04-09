@@ -656,6 +656,121 @@ void condition(int level, int* ptableindex, instruction* code, symbol* symbol_ta
     }
 }
 
+// expression explanation
+void expression(int lev, int *ptx)
+{
+  int addop;
+  if (current.type == plussym || current.type == minussym)
+  {
+    addop = current.type;
+    current = getNextToken();
+    term(lev, ptx, ifp, code, table);
+    if(addop == minussym)
+      emit(2, 0, 1, code); // 2 is OPR for op, 1 is NEG for M inside OPR
+  }
+  else
+  {
+    term (lev, ptx, ifp, code, table);
+  }
+  while (token == plussym || token == minussym)
+  {
+    addop = token;
+    token = getNextToken();
+    term(lev, ptx, ifp, code, table);
+    if (addop == plussym)
+    {
+      emit(2, 0, 2, code); // 2 is OPR for op, 2 is ADD for M inside OPR
+    }
+    else
+    {
+      emit(2, 0, 3, code); // 2 is OPR for op, 3 is SUB for M inside OPR
+    }
+  }
+}
+
+// term explanation
+void term(int lev, int *ptx, FILE* ifp, instruction* code, symbol* table)
+{
+  int mulop;
+  factor(lev, ptx, table, ifp, code);
+  while(token == multsym || token == slashsym)
+  {
+    mulop = current.type;
+    current.type = getNextToken(ifp);
+    factor(lev, ptx, table, ifp, code);
+    if(mulop == multsym)
+    {
+      emit(2, 0, 4, code); // 2 is OPR for op, 4 is MUL for M inside OPR
+    }
+    else
+    {
+      emit(2, 0, 5, code); // 2 is OPR for op, 5 is DIV for M inside OPR
+    }
+  }
+}
+
+// factor explanation
+void factor(int lev, int *ptx)
+{
+  int i, level, adr, val;
+
+  while ((current.type == identsym) || (current.type == numbersym) || (current.type == lparentsym))
+  {
+    if (current.type == identsym)
+    {
+      i = position(id,ptx, table, lev);
+      if (i == 0)
+      {
+        print_error(11); // undeclared identifier
+      }
+      else
+      {
+        kind = table[i].kind;
+        level = table[i].level;
+        adr = table[i].addr;
+        val = table[i].val;
+        if (kind == 1)
+        {//const
+          emit(1,0,val, code); // 1 is LIT for op, val is for M inside LIT
+        }
+        else if (kind==2)
+        {//var
+          emit(3,lev-level,adr, code); // 3 is LOD for op, lev-level is L inside LOD, adr is for M inside LOD
+        }
+        else
+        {
+          error(21); // Expression must not contain a procedure identifier
+        }
+      }
+      current.type = getNextToken();
+    }
+    /***this might need to be changed***/
+    else if (token == numbersym)
+    {
+      if (num > 2047)
+      { //maximum address
+        print_error(25);
+        num = 0;
+      }
+      emit(1,0,num, code); // 1 is LIT for op, num is for M inside LIT
+      current.type = getNextToken();
+    }
+    else if (current.type == lparentsym)
+    {
+      token = getNextToken();
+      expression(lev,ptx, ifp, code, table);
+      if (current.type == rparentsym)
+      {
+        token = getNextToken(ifp);
+      }
+      else
+      {
+        print_error(22); // Right parenthesis missing.
+      }
+    }
+  }
+}
+
 // Returns true if the character sent is a valid symbol or false otherwise
 bool isSymbol(char symbol)
 {
