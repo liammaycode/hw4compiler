@@ -440,6 +440,8 @@ void program()
 // block description
 void block(int level, int tableIndex)
 {
+  // debugging
+  printf("Block\n");
   if(MAX_LEXI_LEVELS < level)
   {
     print_error(26);
@@ -900,6 +902,10 @@ void factor(int lev, int *ptx)
 // Adds instruction to instruction array
 void emit(int op, int l, int m)
 {
+  // debugging
+  printf("Emit\n insIndex: %d\n", listIndex);
+  // printf("\nins:\t%d\t%d\t%d\n%d\n", ins[insIndex].op, ins[insIndex].l, ins[insIndex].m, listIndex);
+
   ins[insIndex].op = op;
   ins[insIndex].l = l;
   ins[insIndex].m = m;
@@ -1398,6 +1404,9 @@ int main(int argc, char **argv)
   token current;
   bool l = false, a = false, v = false;
 
+  // debugging
+  // printf("Here\nwe\ngo\n\n\n");
+
   // In case user doesn't know how to use program
   if (argc < 3 || argc > 6)
   {
@@ -1468,7 +1477,7 @@ int main(int argc, char **argv)
   }
 
   // Initializing instruction array
-  instruction *ins = malloc(count * sizeof(instruction));
+  ins = malloc(1000000 * sizeof(instruction));
   program();
 
   // printf("\n\n%s\n\n", code); // debugging
