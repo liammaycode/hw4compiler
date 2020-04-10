@@ -72,9 +72,10 @@ void factor(int lev, int *ptx);
 
 FILE *fpin, *fpout;
 token list[MAX_CODE_LENGTH], current;
-instruction ins[MAX_CODE_LENGTH];
+// instruction ins[MAX_CODE_LENGTH];
 symbol symbol_table[MAX_SYMBOL_TABLE_SIZE];
-int insIndex = 0, listIndex = 0, insIndex, lit_m, num;
+instruction *ins;
+int insIndex = 0, listIndex = 0, lit_m, num;
 char reserved[14][9] = { "const", "var", "procedure", "call", "begin", "end",
                          "if", "then", "else", "while", "do", "read", "write",
                          "odd" };
@@ -90,7 +91,7 @@ token *createToken(token_type t, char *str)
 	return tptr;
 }
 
-// Retreives the next token from the list of lexemes and it's string or number
+// Retreives the next token from the list of lexemes and its string or number
 // associated with it if needed
 token getNextToken()
 {
@@ -425,7 +426,7 @@ void enter(int k, int *ptableIndex, int *pdataindex, int level)
 }
 
 // Handles case of no '.' at the end of block
-void program(symbol* symbol_table, instruction* code)
+void program()
 {
   current = getNextToken();
   block(0, 0);
@@ -1465,6 +1466,10 @@ int main(int argc, char **argv)
     fprintf(fpout, "Error(s), program is not syntactically correct\n");
     return 0;
   }
+
+  // Initializing instruction array
+  instruction *ins = malloc(count * sizeof(instruction));
+  program();
 
   // printf("\n\n%s\n\n", code); // debugging
   // Printing output
