@@ -61,12 +61,20 @@ bool isReserved(char *str);
 bool isSymbol(char symbol);
 void print_token(int tokenRep);
 void print_error(int errorNum);
+void enter(int k, int* ptableIndex, int* pdataindex, int level);
+void block(int level, int tableIndex);
+void emit(int op, int l, int m);
+void statement(int lev, int *ptx);
+void expression(int lev, int *ptx);
+void condition(int level, int* ptableindex);
+void term(int lev, int *ptx);
+void factor(int lev, int *ptx);
 
 FILE *fpin, *fpout;
 token list[MAX_CODE_LENGTH], current;
 instruction ins[MAX_CODE_LENGTH];
 symbol symbol_table[MAX_SYMBOL_TABLE_SIZE];
-int insIndex = 0, listIndex = 0, cx;
+int insIndex = 0, listIndex = 0, cx, lit_m, num;
 char reserved[14][9] = { "const", "var", "procedure", "call", "begin", "end",
                          "if", "then", "else", "while", "do", "read", "write",
                          "odd" };
@@ -85,7 +93,6 @@ token *createToken(token_type t, char *str)
 // Why does this need the file pointer if it is never used?
 token getNextToken()
 {
-  int num;
   // token is an int representing token type
   current = list[listIndex];
 
@@ -99,6 +106,72 @@ token getNextToken()
 
   listIndex++;
   return current;
+}
+
+// comment
+void constdeclaration(int level, int *ptableIndex, int *pdataindex, symbol* symbol_table)
+{
+  current = getNextToken();
+  if (current.type == becomessym)
+  {
+    if (current.type == becomessym)
+    {
+      print_error(1);
+    }
+    current = getNextToken();
+    if (current.type == numbersym)
+    {
+      enter(1, ptableIndex, pdataindex, level);
+      current = getNextToken();
+    }
+  }
+}
+
+// comment
+void vardeclaration(int level, int *ptableindex, int *pdataindex)
+{
+  if (current.type == identsym)
+  {
+    enter(2, ptableindex, pdataindex, level);
+    current = getNextToken();
+  }
+  else
+  {
+    print_error(4);
+  }
+}
+
+// comment
+int position(char *id, int ptableIndex, int levels)
+{
+  int pos, prevdiff, diff = 0;
+  int s = ptableIndex, count = 0;
+  while(s!=0)
+  {
+    if(strcmp(symbol_table[s].name, id) == 0)
+    {
+      if(symbol_table[s].level <= levels)
+      {
+        if(diff !=0)
+        {
+          prevdiff = diff;
+        }
+
+        diff = levels - symbol_table[s].level;
+
+        if(diff == 0 || diff < prevdiff)
+        {
+          pos = s;
+        }
+
+        count++;
+      }
+    }
+
+    s--;
+  }
+
+  return pos;
 }
 
 // Edits the string passed to it to delete all text between the '/*' and '*/'
@@ -316,115 +389,148 @@ int parse(char *code)
   return listIndex;
 }
 
+// comment
+void enter(int k, int* ptableIndex, int* pdataindex, int level)
+{
+  int x=0;
+  ptableIndex++;
+  char *lastIdentifier = current.str;
+  int length = strlen(current.str);
+  while(x <= length)
+  {
+    symbol_table[*ptableIndex].name[x] = *lastIdentifier;
+    x++;
+    lastIdentifier++;
+  }
+
+  symbol_table[*ptableIndex].kind = k;
+
+
+    switch(k)
+    {
+      case 1:
+        symbol_table[*ptableIndex].val = lit_m;
+        break;
+
+      case 2:
+        symbol_table[*ptableIndex].level = level;
+        symbol_table[*ptableIndex].addr = *pdataindex;
+        (*pdataindex)++;
+        break;
+
+      default:
+      symbol_table[*ptableIndex].level = level;
+
+    }
+
+}
+
 // program description
 void program(symbol* symbol_table, instruction* code)
 {
   current = getNextToken();
-  block(0,0, symbol_table, code);
-  if(current != periodsym)
-  {
+  block(0, 0);
+  if (current.type != periodsym)
     print_error(9);
-  }
 }
 
 // block description
-void block(int level, int tableIndex, symbol* symbol_table)
+void block(int level, int tableIndex)
 {
   if(MAX_LEXI_LEVELS < level)
   {
-    findError(26);
+    print_error(26);
   }
 
   int dataIndex = 4, tableIndex2, cx2;
   tableIndex2 = tableIndex;
   symbol_table[tableIndex].addr = cx;
-  emit(7,0,0, code);
+  emit(7, 0, 0);
 
-
-
-   while( (current == constsym) || (current == varsym) || (current == procsym) )
+   while ((current.type == constsym) || (current.type == varsym) || (current.type == procsym))
    {
-       if (current == constsym)
-       {
+     if (current.type == constsym)
+     {
+        current = getNextToken();
+        while (current.type == identsym)
+        {
+         constdeclaration(level, &tableIndex, &dataIndex, symbol_table);
+         while (current.type == commasym)
+         {
            current = getNextToken();
-            while (current == identsym)
-            {
-               constdeclaration(level, &tableIndex, &dataIndex, symbol_table);
-               while(current == commasym)
-               {
-                   current = getNextToken();
-                   constdeclaration(level, &tableIndex, &dataIndex, symbol_table);
-               }
-               if(current == semicolonsym) {
-                   current = getNextToken();
-               }
-               else
-               {
-                   print_error(5);
-               }
-           }
+           constdeclaration(level, &tableIndex, &dataIndex, symbol_table);
+         }
+         if (current.type == semicolonsym)
+         {
+           current = getNextToken();
+         }
+         else
+         {
+           print_error(5);
+         }
        }
-       if (current == varsym)
+     }
+     if (current.type == varsym)
+     {
+       current = getNextToken();
+       while (current.type == identsym)
        {
+         vardeclaration(level, &tableIndex, &dataIndex);
+         while (current.type == commasym)
+         {
            current = getNextToken();
-           while(current == identsym)
-           {
-               vardeclaration(level, &tableIndex, &dataIndex, symbol_table);
-               while (token == commasym)
-               {
-                   current = getNextToken();
-                   vardeclaration(level, &tableIndex, &dataIndex, symbol_table);
-               }
-               if(current == semicolonsym)
-               {
-                   current = getNextToken();
-               }
-               else
-               {
-                   print_error(5);
-               }
-           }
+           vardeclaration(level, &tableIndex, &dataIndex);
+         }
+         if (current.type == semicolonsym)
+         {
+           current = getNextToken();
+         }
+         else
+         {
+           print_error(5);
+         }
        }
-       while(current == procsym)
+     }
+     while (current.type == procsym)
+     {
+       current = getNextToken();
+
+       if (current.type == identsym)
        {
-           current = getNextToken();
+         enter(3, &tableIndex, &dataIndex, level);
+         current = getNextToken();
+       }
+       else
+       {
+         print_error(4);
+       }
+       if (current.type == semicolonsym)
+       {
+         current = getNextToken();
+       }
+       else
+       {
+         print_error(5);
+       }
 
-           if(current == identsym)
-           {
-               enter(3, &tableIndex, &dataIndex, level, symbol_table);
-               current = getNextToken();
-           }
-           else
-           {
-               print_error(4);
-           }
-           if(current == semicolonsym)
-           {
-               current = getNextToken(ifp);
-           }
-           else
-           {
-               print_error(5);
-           }
-
-           block(level+1, tableIndex, tableIndex, code);
-           if(current == semicolonsym)
-           {
-               current = getNextToken();
-           }
-           else
-           {
-               print_error(5);
-           }
-           }
-      }
-   code[symbol_table[tableIndex2].addr].m = cx;
+       block(level+1, tableIndex);
+       if (current.type == semicolonsym)
+       {
+         current = getNextToken();
+       }
+       else
+       {
+         print_error(5);
+       }
+     }
+   }
+   ins[symbol_table[tableIndex2].addr].m = cx;
    symbol_table[tableIndex2].addr = cx;
    cx2 = cx;
    //6 = inc
-   emit(6, 0, dataIndex, code);
-   statement(level, &tableIndex, code, symbol_table);
-   emit(2, 0, 0, code);
+   emit(6, 0, dataIndex);
+   statement(level, &tableIndex);
+   emit(2, 0, 0);
 }
 
 // Statement
@@ -433,7 +539,7 @@ void statement(int lev, int *ptx)
   int i, cx1, cx2;
   if (current.type == identsym)
   {
-    i = position(current.str, ptx, symbol_table, lev);
+    i = position(current.str, *ptx, lev);
     if (i == 0)
     {
       print_error(11); //Undeclared identifier.
@@ -452,31 +558,30 @@ void statement(int lev, int *ptx)
     {
       print_error(13); //Assignment operator expected.
     }
-    expression(lev, ptx, ins, symbol_table);
+    expression(lev, ptx);
     if (i != 0)
     {
-      emit(4, lev-table[i].level, table[i].addr, ins); // 4 is STO for op, lev-table[i].level is for L, table[i].adr for M
-      // I don't know what his lev-table is but I think whatever he is doing
-      // with it, we can implement it in a better way
+      emit(4, symbol_table[i].level, symbol_table[i].addr); // 4 is STO for op, symbol_table[i].level is for L, table[i].adr for M
+      // OH HIS symbol_table WAS A SYMBOL TABLE!!!!!!!!!!!!
     }
   }
   else if (current.type == callsym)
   {
     current = getNextToken();
-    if (token != identsym)
+    if (current.type != identsym)
     {
       print_error(14); //call must be followed by an identifier
     }
     else
     {
-      i = position(current.str, ptx, symbol_table, lev);
-      if(i == 0)
+      i = position(current.str, *ptx, lev);
+      if (i == 0)
       {
         print_error(11); //Undeclared identifier.
       }
-      else if (table[i].kind==3)
+      else if (symbol_table[i].kind == 3)
       {//proc
-        emit(5,lev-table[i].level, table[i].addr, ins); // 5 is CAL for op, lev-table[i].level is for L, table[i].adr for M
+        emit(5, symbol_table[i].level, symbol_table[i].addr); // 5 is CAL for op, symbol_table[i].level is for L, table[i].adr for M
           //statement::= ["call" ident | ...]
       }
       else
@@ -489,7 +594,7 @@ void statement(int lev, int *ptx)
   else if (current.type == ifsym)
   {
     current = getNextToken();
-    condition(lev, ptx, ins, symbol_table);
+    condition(lev, ptx);
     if (current.type == thensym)
     {
       current = getNextToken();
@@ -500,34 +605,34 @@ void statement(int lev, int *ptx)
     }
 
     cx1 = cx;
-    emit(8, 0, 0, ins); // 8 is JPC for op, 0 is for L and 0 for M
-    statement(lev, ptx, ins, symbol_table);
+    emit(8, 0, 0); // 8 is JPC for op, 0 is for L and 0 for M
+    statement(lev, ptx);
 
     /**working on else**/
     if (current.type == elsesym)
     {
       current = getNextToken();
 
-      code[cx1].m = cx+1; //jumps past if
+      ins[cx1].m = cx+1; //jumps past if
       cx1 = cx;
-      emit(7, 0, 0, ins); // 7 is JMP for op, 0 is for L and cx1 for M
+      emit(7, 0, 0); // 7 is JMP for op, 0 is for L and cx1 for M
       //updates JPC M value
-      statement(lev, ptx, ins, symbol_table);
+      statement(lev, ptx);
     }
-    code[cx1].m = cx; //jumps past else (if theres an else statement) otherwise jumps past if
+    ins[cx1].m = cx; //jumps past else (if theres an else statement) otherwise jumps past if
   }
 
   //begin <condition> end <statement>
   else if (current.type == beginsym)
   {
     current = getNextToken();
-    statement(lev, ptx, ins, symbol_table);
+    statement(lev, ptx);
 
      /**changed**/
      while (current.type == semicolonsym)
      {
        current = getNextToken();
-       statement(lev, ptx, ins, symbol_table);
+       statement(lev, ptx);
      }
 
     /**original**/
@@ -557,9 +662,9 @@ void statement(int lev, int *ptx)
   {
     cx1 = cx;
     current = getNextToken();
-    condition(lev, ptx, ins, symbol_table);
+    condition(lev, ptx);
     cx2 = cx;
-    emit(8, 0, 0, ins); // 8 is JPC for op, 0 is for L and 0 for M
+    emit(8, 0, 0); // 8 is JPC for op, 0 is for L and 0 for M
     if (current.type == dosym)
     {
       current = getNextToken();
@@ -568,24 +673,24 @@ void statement(int lev, int *ptx)
     {
       print_error(18);  // do expected
     }
-    statement(lev, ptx, ins, symbol_table);
-    emit(7, 0, cx1, ins); // 7 is JMP for op, 0 is for L and cx1 for M, jump to instruction cx1
-    code[cx2].m = cx;
+    statement(lev, ptx);
+    emit(7, 0, cx1); // 7 is JMP for op, 0 is for L and cx1 for M, jump to instruction cx1
+    ins[cx2].m = cx;
   }
 
   //write needs to write
   else if (current.type == writesym)
   {
     current = getNextToken();
-    expression(lev, ptx, ifp, code, table);
-    emit(9,0,1, code); // 9 is SIO1 for op, 0 is for L and 1 for M, write the top stack element to the screen
+    expression(lev, ptx);
+    emit(9, 0, 1); // 9 is SIO1 for op, 0 is for L and 1 for M, write the top stack element to the screen
   }
   //read needs to read and STO
   else if (current.type == readsym)
   {
     current = getNextToken();
-    emit(10, 0, 2, code); // 10 is SIO2 for op, 0 is for L and 1 for M, write the top stack element to the screen
-    i=position(current.str, ptx, symbol_table, lev);
+    emit(10, 0, 2); // 10 is SIO2 for op, 0 is for L and 1 for M, write the top stack element to the screen
+    i = position(current.str, *ptx, lev);
     if (i == 0)
     {
       print_error(11); //Undeclared identifier.
@@ -597,61 +702,60 @@ void statement(int lev, int *ptx)
     }
     if (i != 0)
     {
-      emit(4, lev-table[i].level, table[i].addr, code); // 4 is STO for op, lev-table[i].level is for L, table[i].adr for M
+      emit(4, symbol_table[i].level, symbol_table[i].addr); // 4 is STO for op, symbol_table[i].level is for L, table[i].adr for M
     }
      current = getNextToken();
   }
 }
 
 // condition description
-void condition(int level, int* ptableindex, instruction* code, symbol* symbol_table)
+void condition(int level, int* ptableindex)
 {
-
-  if( current == oddsym)
+  int rel_switch;
+  if (current.type == oddsym)
   {
     current = getNextToken();
-    expression(level, ptableindex, code, symbol_table);
-    emit(2, 0, 6, code);
+    expression(level, ptableindex);
+    emit(2, 0, 6);
   }
-
-  int rel_switch;
   else
   {
-    expression(level, ptableindex, code, symbol_table);
-    if( (current != eqsym) && ( current != neqsym) && (current != lessym) && ( current !=leqsym) && ( current != gtrsym) && (current != geqsym) )
+    expression(level, ptableindex);
+    if ((current.type != neqsym) && (current.type != lessym)
+        && (current.type !=leqsym) && (current.type != gtrsym)
+        && (current.type != geqsym))
     {
       print_error(20);
     }
-
     else
     {
-      rel_switch = current;
+      rel_switch = current.type;
       current = getNextToken();
-      expression(level, ptableindex, code, symbol_table);
+      expression(level, ptableindex);
 
       if(rel_switch == 9)
       {
-        emit(2,0,8, code);
+        emit(2, 0, 8);
       }
       if(rel_switch == 10)
       {
-        emit(2,0,9, code);
+        emit(2, 0, 9);
       }
       if(rel_switch == 11)
       {
-        emit(2,0,10, code);
+        emit(2, 0, 10);
       }
       if(rel_switch == 12)
       {
-        emit(2,0,11, code);
+        emit(2, 0, 11);
       }
       if(rel_switch == 13)
       {
-        emit(2,0,12, code);
+        emit(2, 0, 12);
       }
       if(rel_switch == 14)
       {
-        emit(2,0,13, code);
+        emit(2, 0, 13);
       }
     }
 }
@@ -664,47 +768,47 @@ void expression(int lev, int *ptx)
   {
     addop = current.type;
     current = getNextToken();
-    term(lev, ptx, ifp, code, table);
+    term(lev, ptx);
     if(addop == minussym)
-      emit(2, 0, 1, code); // 2 is OPR for op, 1 is NEG for M inside OPR
+      emit(2, 0, 1); // 2 is OPR for op, 1 is NEG for M inside OPR
   }
   else
   {
-    term (lev, ptx, ifp, code, table);
+    term (lev, ptx);
   }
-  while (token == plussym || token == minussym)
+  while (current.type == plussym || current.type == minussym)
   {
-    addop = token;
-    token = getNextToken();
-    term(lev, ptx, ifp, code, table);
+    addop = current.type;
+    current = getNextToken();
+    term(lev, ptx);
     if (addop == plussym)
     {
-      emit(2, 0, 2, code); // 2 is OPR for op, 2 is ADD for M inside OPR
+      emit(2, 0, 2); // 2 is OPR for op, 2 is ADD for M inside OPR
     }
     else
     {
-      emit(2, 0, 3, code); // 2 is OPR for op, 3 is SUB for M inside OPR
+      emit(2, 0, 3); // 2 is OPR for op, 3 is SUB for M inside OPR
     }
   }
 }
 
 // term explanation
-void term(int lev, int *ptx, FILE* ifp, instruction* code, symbol* table)
+void term(int lev, int *ptx)
 {
   int mulop;
-  factor(lev, ptx, table, ifp, code);
-  while(token == multsym || token == slashsym)
+  factor(lev, ptx);
+  while (current.type == multsym || current.type == slashsym)
   {
     mulop = current.type;
-    current.type = getNextToken(ifp);
-    factor(lev, ptx, table, ifp, code);
-    if(mulop == multsym)
+    current = getNextToken();
+    factor(lev, ptx);
+    if (mulop == multsym)
     {
-      emit(2, 0, 4, code); // 2 is OPR for op, 4 is MUL for M inside OPR
+      emit(2, 0, 4); // 2 is OPR for op, 4 is MUL for M inside OPR
     }
     else
     {
-      emit(2, 0, 5, code); // 2 is OPR for op, 5 is DIV for M inside OPR
+      emit(2, 0, 5); // 2 is OPR for op, 5 is DIV for M inside OPR
     }
   }
 }
@@ -712,62 +816,79 @@ void term(int lev, int *ptx, FILE* ifp, instruction* code, symbol* table)
 // factor explanation
 void factor(int lev, int *ptx)
 {
-  int i, level, adr, val;
+  int i, kind, level, adr, val;
 
   while ((current.type == identsym) || (current.type == numbersym) || (current.type == lparentsym))
   {
     if (current.type == identsym)
     {
-      i = position(id,ptx, table, lev);
+      i = position(current.str, *ptx, lev);
       if (i == 0)
       {
         print_error(11); // undeclared identifier
       }
       else
       {
-        kind = table[i].kind;
-        level = table[i].level;
-        adr = table[i].addr;
-        val = table[i].val;
+        kind = symbol_table[i].kind;
+        level = symbol_table[i].level;
+        adr = symbol_table[i].addr;
+        val = symbol_table[i].val;
         if (kind == 1)
         {//const
-          emit(1,0,val, code); // 1 is LIT for op, val is for M inside LIT
+          emit(1, 0, val); // 1 is LIT for op, val is for M inside LIT
         }
-        else if (kind==2)
+        else if (kind == 2)
         {//var
-          emit(3,lev-level,adr, code); // 3 is LOD for op, lev-level is L inside LOD, adr is for M inside LOD
+          emit(3, lev-level, adr); // 3 is LOD for op, lev-level is L inside LOD, adr is for M inside LOD
         }
         else
         {
-          error(21); // Expression must not contain a procedure identifier
+          print_error(21); // Expression must not contain a procedure identifier
         }
       }
-      current.type = getNextToken();
+      current = getNextToken();
     }
     /***this might need to be changed***/
-    else if (token == numbersym)
+    else if (current.type == numbersym)
     {
-      if (num > 2047)
+      if ((num) > 2047)
       { //maximum address
         print_error(25);
         num = 0;
       }
-      emit(1,0,num, code); // 1 is LIT for op, num is for M inside LIT
-      current.type = getNextToken();
+      emit(1, 0, num); // 1 is LIT for op, num is for M inside LIT
+      current = getNextToken();
     }
     else if (current.type == lparentsym)
     {
-      token = getNextToken();
-      expression(lev,ptx, ifp, code, table);
+      current = getNextToken();
+      expression(lev, ptx);
       if (current.type == rparentsym)
       {
-        token = getNextToken(ifp);
+        current = getNextToken();
       }
       else
       {
         print_error(22); // Right parenthesis missing.
       }
     }
+  }
+}
+
+// emit explanation
+void emit(int op, int l, int m)
+{
+  if(MAX_CODE_LENGTH < cx)
+  {
+    printf("The program contains too much code.\n");
+  }
+  else
+  {
+      ins[cx].op = op;
+      ins[cx].l = l;
+      ins[cx].m = m;
+      //increment cx
+      cx = cx + 1;
   }
 }
 
