@@ -108,8 +108,9 @@ token getNextToken()
 }
 
 // comment
-void constdeclaration(int level, int *ptableIndex, int *pdataindex)
+void constDeclaration(int level, int *ptableIndex, int *pdataindex)
 {
+  printf("\tConstant Declaration\n");
   current = getNextToken();
   if (current.type == becomessym)
   {
@@ -128,7 +129,7 @@ void constdeclaration(int level, int *ptableIndex, int *pdataindex)
 }
 
 // comment
-void vardeclaration(int level, int *ptableindex, int *pdataindex)
+void varDeclaration(int level, int *ptableindex, int *pdataindex)
 {
   if (current.type == identsym)
   {
@@ -145,6 +146,7 @@ void vardeclaration(int level, int *ptableindex, int *pdataindex)
 // comment
 int position(char *id, int ptableIndex, int levels)
 {
+  printf("\tPosition\n");
   int pos, prevdiff, diff = 0;
   int s = ptableIndex, count = 0;
   while(s!=0)
@@ -206,6 +208,9 @@ char* trim(char *str)
 // errors only.
 int parse(char *code)
 {
+  // debugging
+  printf("\tParse\n");
+
   token *tptr;
   int lp = 0, rp, length, i, lev = 0, dx = 0, tx = 0;
   char buffer[MAX_CODE_LENGTH];
@@ -237,8 +242,8 @@ int parse(char *code)
       // checking for ident length error
       if (length > MAX_IDENT_LENGTH)
       {
-        fprintf(fpout, "Err: ident length too long\n");
-        return 0;
+        print_error(26); // Identifier too long
+        exit(0);
       }
 
       // creating substring
@@ -279,8 +284,8 @@ int parse(char *code)
       // Checking for ident length error
       if (length > MAX_NUM_LENGTH)
       {
-        fprintf(fpout, "Err: number length too long\n");
-        return 0;
+        print_error(25); // Number is too large
+        exit(0);
       }
 
       // Creating substring
@@ -372,8 +377,8 @@ int parse(char *code)
       }
       else
       {
-        fprintf(fpout, "Err: Invalid symbol\n");
-        return 0;
+        print_error(27); // Invalid symbol
+        exit(0);
       }
 
       buffer[0] = code[lp];
@@ -395,6 +400,9 @@ int parse(char *code)
 // Given [ ], enters info to symbol table
 void enter(int k, int *ptableIndex, int *pdataindex, int level)
 {
+  // debugging
+  printf("\tEnter\n");
+
   int i = 0;
   *ptableIndex++;
   char *lastIdentifier = current.str;
@@ -428,6 +436,9 @@ void enter(int k, int *ptableIndex, int *pdataindex, int level)
 // Handles case of no '.' at the end of block
 void program()
 {
+  // debugging
+  printf("\tProgram\n");
+
   current = getNextToken();
   block(0, 0);
   if (current.type != periodsym)
@@ -441,14 +452,14 @@ void program()
 void block(int level, int tableIndex)
 {
   // debugging
-  printf("Block\n");
+  printf("\tBlock\n");
   if(MAX_LEXI_LEVELS < level)
   {
     print_error(26);
     exit(0);
   }
 
-  int dataIndex = 4, tableIndex2, insIndex2;
+  int dataIndex = 4, tableIndex2, insIndex0;
   tableIndex2 = tableIndex;
   symbol_table[tableIndex].addr = insIndex;
   emit(7, 0, 0);
@@ -460,11 +471,11 @@ void block(int level, int tableIndex)
         current = getNextToken();
         while (current.type == identsym)
         {
-         constdeclaration(level, &tableIndex, &dataIndex);
+         constDeclaration(level, &tableIndex, &dataIndex);
          while (current.type == commasym)
          {
            current = getNextToken();
-           constdeclaration(level, &tableIndex, &dataIndex);
+           constDeclaration(level, &tableIndex, &dataIndex);
          }
          if (current.type == semicolonsym)
          {
@@ -482,11 +493,11 @@ void block(int level, int tableIndex)
        current = getNextToken();
        while (current.type == identsym)
        {
-         vardeclaration(level, &tableIndex, &dataIndex);
+         varDeclaration(level, &tableIndex, &dataIndex);
          while (current.type == commasym)
          {
            current = getNextToken();
-           vardeclaration(level, &tableIndex, &dataIndex);
+           varDeclaration(level, &tableIndex, &dataIndex);
          }
          if (current.type == semicolonsym)
          {
@@ -537,9 +548,8 @@ void block(int level, int tableIndex)
    }
    ins[symbol_table[tableIndex2].addr].m = insIndex;
    symbol_table[tableIndex2].addr = insIndex;
-   insIndex2 = insIndex;
-   //6 = inc
-   emit(6, 0, dataIndex);
+   insIndex0 = insIndex;
+   emit(6, 0, dataIndex); // INC
    statement(level, &tableIndex);
    emit(2, 0, 0);
 }
@@ -547,6 +557,9 @@ void block(int level, int tableIndex)
 // Statement
 void statement(int lev, int *ptx)
 {
+  // debugging
+  printf("\tStatement\n");
+
   int i, insIndex1, insIndex2;
   if (current.type == identsym)
   {
@@ -630,7 +643,7 @@ void statement(int lev, int *ptx)
     {
       current = getNextToken();
 
-      ins[insIndex1].m = insIndex+1; //jumps past if
+      ins[insIndex1].m = insIndex + 1; // jumps past if
       insIndex1 = insIndex;
       emit(7, 0, 0); // 7 is JMP for op, 0 is for L and insIndex1 for M
       //updates JPC M value
@@ -731,6 +744,9 @@ void statement(int lev, int *ptx)
 // condition description
 void condition(int level, int* ptableindex)
 {
+  // debugging
+  printf("\tStatement\n");
+
   int rel_switch;
   if (current.type == oddsym)
   {
@@ -785,6 +801,9 @@ void condition(int level, int* ptableindex)
 // expression explanation
 void expression(int lev, int *ptx)
 {
+  // debugging
+  printf("\tExpression\n");
+
   int addop;
   if (current.type == plussym || current.type == minussym)
   {
@@ -817,6 +836,9 @@ void expression(int lev, int *ptx)
 // term explanation
 void term(int lev, int *ptx)
 {
+  // debugging
+  printf("\tTerm\n");
+
   int mulop;
   factor(lev, ptx);
   while (current.type == multsym || current.type == slashsym)
@@ -838,6 +860,9 @@ void term(int lev, int *ptx)
 // factor explanation
 void factor(int lev, int *ptx)
 {
+  // debugging
+  printf("\tFacter\n");
+
   int i, kind, level, adr, val;
 
   while ((current.type == identsym) || (current.type == numbersym) || (current.type == lparentsym))
@@ -903,7 +928,7 @@ void factor(int lev, int *ptx)
 void emit(int op, int l, int m)
 {
   // debugging
-  printf("Emit\n insIndex: %d\n", listIndex);
+  printf("\tEmit\tinsIndex: %d\n", listIndex);
   // printf("\nins:\t%d\t%d\t%d\n%d\n", ins[insIndex].op, ins[insIndex].l, ins[insIndex].m, listIndex);
 
   ins[insIndex].op = op;
@@ -1216,107 +1241,114 @@ void print_error(int errorNum)
   switch( errorNum )
   {
     case 1:
-      printf("Use = instead of := \n");
+      fprintf(fpout, "Use = instead of := \n");
       break;
 
     case 2:
-      printf("= must be followed by a number \n");
+      fprintf(fpout, "= must be followed by a number \n");
       break;
 
     case 3:
-      printf("Identifier must be followed by = \n");
+      fprintf(fpout, "Identifier must be followed by = \n");
       break;
 
     case 4:
-      printf("const, int, procedure must be followed by identifier\n");
+      fprintf(fpout, "const, int, procedure must be followed by identifier\n");
       break;
 
     case 5:
-      printf("Semicolon or comma missing\n");
+      fprintf(fpout, "Semicolon or comma missing\n");
       break;
 
     case 6:
-      printf("Incorrect symbol after procedure declaration\n");
+      fprintf(fpout, "Incorrect symbol after procedure declaration\n");
       break;
 
     case 7:
-      printf("Statement expected\n");
+      fprintf(fpout, "Statement expected\n");
       break;
 
     case 8:
-      printf("Incorrect symbol after statement part in block\n");
+      fprintf(fpout, "Incorrect symbol after statement part in block\n");
       break;
 
     case 9:
-      printf("Period expected\n");
+      fprintf(fpout, "Period expected\n");
       break;
 
     case 10:
-      printf("Semicolon between statements missing\n");
+      fprintf(fpout, "Semicolon between statements missing\n");
       break;
 
     case 11:
-      printf("Undeclared identifier \n");
+      fprintf(fpout, "Undeclared identifier \n");
       break;
 
     case 12:
-      printf("Assignment to constant or procedure is not allowed\n");
+      fprintf(fpout, "Assignment to constant or procedure is not allowed\n");
       break;
 
     case 13:
-      printf("Assignment operator expected\n");
+      fprintf(fpout, "Assignment operator expected\n");
       break;
 
     case 14:
-      printf("Call must be followed by an identifier\n");
+      fprintf(fpout, "Call must be followed by an identifier\n");
       break;
 
     case 15:
-      printf("Call of a constant or variable is meaningless\n");
+      fprintf(fpout, "Call of a constant or variable is meaningless\n");
       break;
 
     case 16:
-      printf("Then expected\n");
+      fprintf(fpout, "Then expected\n");
       break;
 
     case 17:
-      printf("Semicolon or } expected \n");
+      fprintf(fpout, "Semicolon or } expected \n");
       break;
 
     case 18:
-      printf("Do expected\n");
+      fprintf(fpout, "Do expected\n");
       break;
 
     case 19:
-      printf("Incorrect symbol following statement\n");
+      fprintf(fpout, "Incorrect symbol following statement\n");
       break;
 
     case 20:
-      printf("Relational operator expected\n");
+      fprintf(fpout, "Relational operator expected\n");
       break;
 
     case 21:
-      printf("Expression must not contain a procedure identifier\n");
+      fprintf(fpout, "Expression must not contain a procedure identifier\n");
       break;
 
     case 22:
-      printf("Right parenthesis missing\n");
+      fprintf(fpout, "Right parenthesis missing\n");
       break;
 
     case 23:
-      printf("The preceding factor cannot begin with this symbol\n");
+      fprintf(fpout, "The preceding factor cannot begin with this symbol\n");
       break;
 
     case 24:
-      printf("An expression cannot begin with this symbol\n");
+      fprintf(fpout, "An expression cannot begin with this symbol\n");
       break;
 
     case 25:
-      printf("This number is too large\n");
+      fprintf(fpout, "This number is too large\n");
       break;
 
+    case 26:
+      fprintf(fpout, "Identifier too long\n");
+      break;
+
+    case 27:
+      fprintf(fpout, "Invalid symbol\n");
+
     default:
-    printf("Invalid instruction");
+    printf("Invalid instruction\n");
   }
 }
 
@@ -1488,3 +1520,4 @@ int main(int argc, char **argv)
   fclose(fpout);
   return 0;
 }
+
