@@ -7,8 +7,7 @@
 // analyzer, a parser, an intermediate code generator, and a virtual machine.
 // This code takes as input a text file containing PL/0 code. It then represents
 // the text as a list of lexemes and converts those lexemes into assembly code.
-// That assembly code is then passed to our virtual machine to be executed.
-#include <stdio.h>
+// That assembly code is then passed to our virtual machine to be executed.#include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
@@ -573,7 +572,7 @@ void statement(int lev, int *ptx)
     i = position(current.str, *ptx, lev);
     if (i == 0)
     {
-      print_error(11); //Undeclared identifier.
+      print_error(11); //Undeclared identifier. These are causing two of the issues
       // exit(0);
     }
     else if (symbol_table[i].kind != 2)
@@ -1530,3 +1529,4 @@ int main(int argc, char **argv)
   fclose(fpout);
   return 0;
 }
+
