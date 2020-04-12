@@ -7,13 +7,12 @@
 // analyzer, a parser, an intermediate code generator, and a virtual machine.
 // This code takes as input a text file containing PL/0 code. It then represents
 // the text as a list of lexemes and converts those lexemes into assembly code.
-// That assembly code is then passed to our virtual machine to be executed.
-
-#include <stdio.h>
+// That assembly code is then passed to our virtual machine to be executed.#include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define MAX_DATA_STACK_HEIGHT 40
 #define MAX_IDENT_LENGTH 11
@@ -95,6 +94,10 @@ token *createToken(token_type t, char *str)
 // associated with it if needed
 token getNextToken()
 {
+  // debugging
+  // printf("\tgetNextToken\n");
+  //printf("%d", list[listIndex].type);
+  //printf("the listIndex is %d", listIndex);
   current = list[listIndex];
 
   //Takes care of variables, always represented by "2 | variable"
@@ -112,18 +115,21 @@ void constDeclaration(int level, int *ptableIndex, int *pdataindex)
 {
   printf("\tConstant Declaration\n");
   current = getNextToken();
+  printf("token: %d\n", current.type);
   if (current.type == becomessym)
   {
     if (current.type == becomessym)
     {
       print_error(1);
-      exit(0);
+      // exit(0);
     }
     current = getNextToken();
+    printf("token: %d\n", current.type);
     if (current.type == numbersym)
     {
       enter(1, ptableIndex, pdataindex, level);
       current = getNextToken();
+      printf("token: %d\n", current.type);
     }
   }
 }
@@ -135,27 +141,31 @@ void varDeclaration(int level, int *ptableindex, int *pdataindex)
   {
     enter(2, ptableindex, pdataindex, level);
     current = getNextToken();
+    printf("token: %d\n", current.type);
   }
   else
   {
     print_error(4);
-    exit(0);
+    // exit(0);
   }
 }
 
-// comment
+// Returns index of symbol table that id is located in
 int position(char *id, int ptableIndex, int levels)
 {
   printf("\tPosition\n");
-  int pos, prevdiff, diff = 0;
-  int s = ptableIndex, count = 0;
-  while(s!=0)
+  int pos = 0, prevdiff, diff = 0;
+  int s = ptableIndex;
+  int diffCount = 0;
+
+  printf("s = %d\n", s);
+  while(s != 0)
   {
-    if(strcmp(symbol_table[s].name, id) == 0)
+    if (strcmp(symbol_table[s].name, id) == 0)
     {
       if(symbol_table[s].level <= levels)
       {
-        if(diff !=0)
+        if(diff != 0)
         {
           prevdiff = diff;
         }
@@ -166,7 +176,7 @@ int position(char *id, int ptableIndex, int levels)
         {
           pos = s;
         }
-        count++;
+        diffCount++;
       }
     }
     s--;
@@ -212,7 +222,7 @@ int parse(char *code)
   printf("\tParse\n");
 
   token *tptr;
-  int lp = 0, rp, length, i, lev = 0, dx = 0, tx = 0;
+  int lp = 0, rp, length, i, lev = 0, dx = 0;
   char buffer[MAX_CODE_LENGTH];
   token_type t;
   bool a;
@@ -243,7 +253,7 @@ int parse(char *code)
       if (length > MAX_IDENT_LENGTH)
       {
         print_error(26); // Identifier too long
-        exit(0);
+        // exit(0);
       }
 
       // creating substring
@@ -285,7 +295,7 @@ int parse(char *code)
       if (length > MAX_NUM_LENGTH)
       {
         print_error(25); // Number is too large
-        exit(0);
+        // exit(0);
       }
 
       // Creating substring
@@ -378,7 +388,7 @@ int parse(char *code)
       else
       {
         print_error(27); // Invalid symbol
-        exit(0);
+        // exit(0);
       }
 
       buffer[0] = code[lp];
@@ -397,41 +407,73 @@ int parse(char *code)
   return listIndex;
 }
 
-// Given [ ], enters info to symbol table
-void enter(int k, int *ptableIndex, int *pdataindex, int level)
-{
-  // debugging
-  printf("\tEnter\n");
+//This enters a symbol into the table
+void enter(int k, int *ptx, int *pdx, int lev) {
 
-  int i = 0;
-  *ptableIndex++;
-  char *lastIdentifier = current.str;
-  int length = strlen(current.str);
-  while(i <= length)
-  {
-    symbol_table[*ptableIndex].name[i] = *lastIdentifier;
-    i++;
-    lastIdentifier++;
+  char *id1;
+  int ii, len;
+  (*ptx)++; //table index tx is increased by 1
+  printf("ptx = %d\n", *ptx);
+  id1=current.str; //last identifier read
+  len=strlen(current.str);
+  for (ii=0;ii<=len;ii++) {
+      symbol_table[*ptx].name[ii]=*id1; //id is recorded in .name
+      id1++;
   }
-
-  symbol_table[*ptableIndex].kind = k;
-
-  switch(k)
-  {
-    case 1:
-      symbol_table[*ptableIndex].val = lit_m;
-      break;
-
-    case 2:
-      symbol_table[*ptableIndex].level = level;
-      symbol_table[*ptableIndex].addr = *pdataindex;
-      (*pdataindex)++;
-      break;
-
-    default:
-    symbol_table[*ptableIndex].level = level;
+  //updates kind
+  symbol_table[*ptx].kind=k;
+  //for constants: updates value
+   if (k==1) {//const
+      symbol_table[*ptx].val=num;
+  }
+  //for variables: updates L and M
+  else if (k==2) {//var
+      symbol_table[*ptx].level=lev;
+      symbol_table[*ptx].addr=*pdx;
+      (*pdx)++;
+      printf("ptableIndex = %d\n", *ptx);
+  }
+  //for procedures: updates L because M will change
+  else {//procedure
+      symbol_table[*ptx].level=lev;
   }
 }
+// // Enters info to symbol table
+// void enter(int k, int *ptableIndex, int *pdataindex, int level)
+// {
+//   // debugging
+//   printf("\tEnter\n");
+//
+//   int i = 0;
+//   *ptableIndex++;
+//   printf("ptableIndex = %d\n", *ptableIndex);
+//   char *lastIdentifier = current.str;
+//   int length = strlen(current.str);
+//   while(i <= length)
+//   {
+//     symbol_table[*ptableIndex].name[i] = *lastIdentifier;
+//     i++;
+//     lastIdentifier++;
+//   }
+//
+//   symbol_table[*ptableIndex].kind = k;
+//
+//   switch(k)
+//   {
+//     case 1:
+//       symbol_table[*ptableIndex].val = lit_m;
+//       break;
+//
+//     case 2:
+//       symbol_table[*ptableIndex].level = level;
+//       symbol_table[*ptableIndex].addr = *pdataindex;
+//       (*pdataindex)++;
+//       break;
+//
+//     default:
+//     symbol_table[*ptableIndex].level = level;
+//   }
+// }
 
 // Handles case of no '.' at the end of block
 void program()
@@ -440,11 +482,12 @@ void program()
   printf("\tProgram\n");
 
   current = getNextToken();
+  printf("token: %d\n", current.type);
   block(0, 0);
   if (current.type != periodsym)
   {
     print_error(9);
-    exit(0);
+    // exit(0);
   }
 }
 
@@ -456,7 +499,7 @@ void block(int level, int tableIndex)
   if(MAX_LEXI_LEVELS < level)
   {
     print_error(26);
-    exit(0);
+    // exit(0);
   }
 
   int dataIndex = 4, tableIndex2, insIndex0;
@@ -469,80 +512,90 @@ void block(int level, int tableIndex)
      if (current.type == constsym)
      {
         current = getNextToken();
+        printf("token: %d\n", current.type);
         while (current.type == identsym)
         {
          constDeclaration(level, &tableIndex, &dataIndex);
          while (current.type == commasym)
          {
            current = getNextToken();
+           printf("token: %d\n", current.type);
            constDeclaration(level, &tableIndex, &dataIndex);
          }
          if (current.type == semicolonsym)
          {
            current = getNextToken();
+           printf("token: %d\n", current.type);
          }
          else
          {
            print_error(5);
-           exit(0);
+           // exit(0);
          }
        }
      }
      if (current.type == varsym)
      {
        current = getNextToken();
+       printf("token: %d\n", current.type);
        while (current.type == identsym)
        {
          varDeclaration(level, &tableIndex, &dataIndex);
          while (current.type == commasym)
          {
            current = getNextToken();
+           printf("token: %d\n", current.type);
            varDeclaration(level, &tableIndex, &dataIndex);
          }
          if (current.type == semicolonsym)
          {
            current = getNextToken();
+           printf("token: %d\n", current.type);
          }
          else
          {
            print_error(5);
-           exit(0);
+           // exit(0);
          }
        }
      }
      while (current.type == procsym)
      {
        current = getNextToken();
+       printf("token: %d\n", current.type);
 
        if (current.type == identsym)
        {
          enter(3, &tableIndex, &dataIndex, level);
          current = getNextToken();
+         printf("token: %d\n", current.type);
        }
        else
        {
          print_error(4);
-         exit(0);
+         // exit(0);
        }
        if (current.type == semicolonsym)
        {
          current = getNextToken();
+         printf("token: %d\n", current.type);
        }
        else
        {
          print_error(5);
-         exit(0);
+         // exit(0);
        }
 
        block(level+1, tableIndex);
        if (current.type == semicolonsym)
        {
          current = getNextToken();
+         printf("token: %d\n", current.type);
        }
        else
        {
          print_error(5);
-         exit(0);
+         // exit(0);
        }
      }
    }
@@ -561,51 +614,58 @@ void statement(int lev, int *ptx)
   printf("\tStatement\n");
 
   int i, insIndex1, insIndex2;
+  // printf("the current type is %d\n", current.type);
   if (current.type == identsym)
   {
+    // printf("made it in here\n");
+    printf("ln 589 position(%s, %d, %d)\n", current.str, *ptx, lev);
     i = position(current.str, *ptx, lev);
     if (i == 0)
     {
-      print_error(11); //Undeclared identifier.
-      exit(0);
+      print_error(11); //Undeclared identifier. These are causing two of the issues
+      // exit(0);
     }
     else if (symbol_table[i].kind != 2)
     {
       print_error(12); //Assignment to constant or procedure is not allowed
-      exit(0);
+      i = 0;
+      // exit(0);
     }
     current = getNextToken();
+    printf("token: %d\n", current.type);
     if (current.type == becomessym)
     {
       current = getNextToken();
+      printf("token: %d\n", current.type);
     }
     else
     {
       print_error(13); //Assignment operator expected.
-      exit(0);
+      // exit(0);
     }
     expression(lev, ptx);
     if (i != 0)
     {
       emit(4, symbol_table[i].level, symbol_table[i].addr); // 4 is STO for op, symbol_table[i].level is for L, table[i].adr for M
-      // OH HIS symbol_table WAS A SYMBOL TABLE!!!!!!!!!!!!
     }
   }
   else if (current.type == callsym)
   {
     current = getNextToken();
+    printf("token: %d\n", current.type);
     if (current.type != identsym)
     {
       print_error(14); //call must be followed by an identifier
-      exit(0);
+      // exit(0);
     }
     else
     {
+      printf("ln 631 position(%s, %d, %d)\n", current.str, *ptx, lev);
       i = position(current.str, *ptx, lev);
       if (i == 0)
       {
         print_error(11); //Undeclared identifier.
-        exit(0);
+        // exit(0);
       }
       else if (symbol_table[i].kind == 3)
       {//proc
@@ -615,23 +675,26 @@ void statement(int lev, int *ptx)
       else
       {
         print_error(15); //Call of a constant or variable is meaningless
-        exit(0);
+        // exit(0);
       }
       current = getNextToken();
+      printf("token: %d\n", current.type);
     }
   }
   else if (current.type == ifsym)
   {
     current = getNextToken();
+    printf("token: %d\n", current.type);
     condition(lev, ptx);
     if (current.type == thensym)
     {
       current = getNextToken();
+      printf("token: %d\n", current.type);
     }
     else
     {
       print_error(16);  // then expected
-      exit(0);
+      // exit(0);
     }
 
     insIndex1 = insIndex;
@@ -642,6 +705,7 @@ void statement(int lev, int *ptx)
     if (current.type == elsesym)
     {
       current = getNextToken();
+      printf("token: %d\n", current.type);
 
       ins[insIndex1].m = insIndex + 1; // jumps past if
       insIndex1 = insIndex;
@@ -656,12 +720,14 @@ void statement(int lev, int *ptx)
   else if (current.type == beginsym)
   {
     current = getNextToken();
+    printf("token: %d\n", current.type);
     statement(lev, ptx);
 
      /**changed**/
      while (current.type == semicolonsym)
      {
        current = getNextToken();
+       printf("token: %d\n", current.type);
        statement(lev, ptx);
      }
 
@@ -680,11 +746,12 @@ void statement(int lev, int *ptx)
     if (current.type == endsym)
     {
       current = getNextToken();
+      printf("token: %d\n", current.type);
     }
     else
     {
       print_error(17);  //Semicolon or } expected.
-      exit(0);
+      // exit(0);
     }
   }
 
@@ -693,17 +760,19 @@ void statement(int lev, int *ptx)
   {
     insIndex1 = insIndex;
     current = getNextToken();
+    printf("token: %d\n", current.type);
     condition(lev, ptx);
     insIndex2 = insIndex;
     emit(8, 0, 0); // 8 is JPC for op, 0 is for L and 0 for M
     if (current.type == dosym)
     {
       current = getNextToken();
+      printf("token: %d\n", current.type);
     }
     else
     {
       print_error(18);  // do expected
-      exit(0);
+      // exit(0);
     }
     statement(lev, ptx);
     emit(7, 0, insIndex1); // 7 is JMP for op, 0 is for L and insIndex1 for M, jump to instruction insIndex1
@@ -714,6 +783,7 @@ void statement(int lev, int *ptx)
   else if (current.type == writesym)
   {
     current = getNextToken();
+    printf("token: %d\n", current.type);
     expression(lev, ptx);
     emit(9, 0, 1); // 9 is SIO1 for op, 0 is for L and 1 for M, write the top stack element to the screen
   }
@@ -721,23 +791,27 @@ void statement(int lev, int *ptx)
   else if (current.type == readsym)
   {
     current = getNextToken();
+    printf("token: %d\n", current.type);
     emit(10, 0, 2); // 10 is SIO2 for op, 0 is for L and 1 for M, write the top stack element to the screen
+    printf("ln 764 position(%s, %d, %d)\n", current.str, *ptx, lev);
     i = position(current.str, *ptx, lev);
     if (i == 0)
     {
       print_error(11); //Undeclared identifier.
-      exit(0);
+      // exit(0);
     }
     else if (symbol_table[i].kind != 2)
     { //var
       print_error(12); //Assignment to constant or procedure is not allowed
-      exit(0);
+      i = 0;
+      // exit(0);
     }
     if (i != 0)
     {
       emit(4, symbol_table[i].level, symbol_table[i].addr); // 4 is STO for op, symbol_table[i].level is for L, table[i].adr for M
     }
      current = getNextToken();
+     printf("token: %d\n", current.type);
   }
 }
 
@@ -751,6 +825,7 @@ void condition(int level, int* ptableindex)
   if (current.type == oddsym)
   {
     current = getNextToken();
+    printf("token: %d\n", current.type);
     expression(level, ptableindex);
     emit(2, 0, 6);
   }
@@ -762,12 +837,13 @@ void condition(int level, int* ptableindex)
         && (current.type != geqsym))
     {
       print_error(20);
-      exit(0);
+      // exit(0);
     }
     else
     {
       rel_switch = current.type;
       current = getNextToken();
+      printf("token: %d\n", current.type);
       expression(level, ptableindex);
 
       if(rel_switch == 9)
@@ -809,6 +885,7 @@ void expression(int lev, int *ptx)
   {
     addop = current.type;
     current = getNextToken();
+    printf("token: %d\n", current.type);
     term(lev, ptx);
     if(addop == minussym)
       emit(2, 0, 1); // 2 is OPR for op, 1 is NEG for M inside OPR
@@ -821,6 +898,7 @@ void expression(int lev, int *ptx)
   {
     addop = current.type;
     current = getNextToken();
+    printf("token: %d\n", current.type);
     term(lev, ptx);
     if (addop == plussym)
     {
@@ -845,6 +923,7 @@ void term(int lev, int *ptx)
   {
     mulop = current.type;
     current = getNextToken();
+    printf("token: %d\n", current.type);
     factor(lev, ptx);
     if (mulop == multsym)
     {
@@ -869,11 +948,12 @@ void factor(int lev, int *ptx)
   {
     if (current.type == identsym)
     {
+      printf("ln 919 position(%s, %d, %d)\n", current.str, *ptx, lev);
       i = position(current.str, *ptx, lev);
       if (i == 0)
       {
         print_error(11); // undeclared identifier
-        exit(0);
+        // exit(0);
       }
       else
       {
@@ -892,33 +972,38 @@ void factor(int lev, int *ptx)
         else
         {
           print_error(21); // Expression must not contain a procedure identifier
-          exit(0);
+          // exit(0);
         }
       }
       current = getNextToken();
+      printf("token: %d\n", current.type);
     }
     else if (current.type == numbersym)
     {
       if ((num) > 2047)
       { //maximum address
         print_error(25);
-        exit(0);
+        num = 0;
+        // exit(0);
       }
       emit(1, 0, num); // 1 is LIT for op, num is for M inside LIT
       current = getNextToken();
+      printf("token: %d\n", current.type);
     }
     else if (current.type == lparentsym)
     {
       current = getNextToken();
+      printf("token: %d\n", current.type);
       expression(lev, ptx);
       if (current.type == rparentsym)
       {
         current = getNextToken();
+        printf("token: %d\n", current.type);
       }
       else
       {
         print_error(22); // Right parenthesis missing.
-        exit(0);
+        // exit(0);
       }
     }
   }
@@ -928,7 +1013,7 @@ void factor(int lev, int *ptx)
 void emit(int op, int l, int m)
 {
   // debugging
-  printf("\tEmit\tinsIndex: %d\n", listIndex);
+  printf("\tEmit\tinsIndex: %d\n", insIndex);
   // printf("\nins:\t%d\t%d\t%d\n%d\n", ins[insIndex].op, ins[insIndex].l, ins[insIndex].m, listIndex);
 
   ins[insIndex].op = op;
@@ -1197,12 +1282,13 @@ void output(int count, bool l, bool a, bool v)
       (i % 10 == 0) ? fprintf(fpout, "\n") : fprintf(fpout, "\t");
     }
     fprintf(fpout, "\n\nNo errors, program is syntactically correct\n\n");
+    // insIndex = 0;
   }
   // If commanded to print generated assembly code, printing all elements of ins
   if (a == true)
   {
     // debugging
-    printf("a is true\nThere are %d elements in ins[]\n", insIndex);
+    // printf("a is true\nThere are %d elements in ins[]\n", insIndex);
     i = 0;
     //while((ins[i].op != 0 && ins[i].r != 0 && ins[i].l !=0 && ins[i].m !=0)) // <--- not ever entering loop because ins[] never gets filled ???
     for(i = 0; i < insIndex; i++)
@@ -1348,7 +1434,7 @@ void print_error(int errorNum)
       fprintf(fpout, "Invalid symbol\n");
 
     default:
-    printf("Invalid instruction\n");
+    fprintf(fpout, "Invalid instruction\n");
   }
 }
 
@@ -1432,7 +1518,7 @@ int main(int argc, char **argv)
   fpout = fopen(argv[2], "w+");
   char aSingleLine[MAX_CODE_LENGTH], code[MAX_CODE_LENGTH] = {'\0'},
        trimmed[MAX_CODE_LENGTH] = {'\0'}, commands[3][3], c;
-  int count, i, tokens[MAX_SYMBOL_TABLE_SIZE] = {'\0'};
+  int list_size, i, tokens[MAX_SYMBOL_TABLE_SIZE] = {'\0'};
   token current;
   bool l = false, a = false, v = false;
 
@@ -1500,21 +1586,20 @@ int main(int argc, char **argv)
 
   // Filling lexeme array and capturing number of elements of lexeme array
   // (or 0 if parse found errors)
-  count = parse(code);
+  list_size = parse(code);
 
-  if (count == 0)
+  if (list_size == 0)
   {
     fprintf(fpout, "Error(s), program is not syntactically correct\n");
     return 0;
   }
 
   // Initializing instruction array
-  ins = malloc(1000000 * sizeof(instruction));
-  program();
+  ins = malloc(listIndex * sizeof(instruction));
+  listIndex = 0;
 
-  // printf("\n\n%s\n\n", code); // debugging
-  // Printing output
-  output(count, l, a, v);
+  program();
+  output(list_size, l, a, v);
 
   fclose(fpin);
   fclose(fpout);
