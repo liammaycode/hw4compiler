@@ -117,9 +117,9 @@ token getNextToken()
 // comment
 void constDeclaration(int level, int *ptableIndex, int *pdataindex)
 {
-  printf("\tConstant Declaration\n");
+  // printf("\tConstant Declaration\n");
   current = getNextToken();
-  printf("token: %d\n", current.type);
+  // printf("token: %d\n", current.type);
   if (current.type == becomessym)
   {
     if (current.type == becomessym)
@@ -128,12 +128,12 @@ void constDeclaration(int level, int *ptableIndex, int *pdataindex)
       // exit(0);
     }
     current = getNextToken();
-    printf("token: %d\n", current.type);
+    // printf("token: %d\n", current.type);
     if (current.type == numbersym)
     {
       enter(1, ptableIndex, pdataindex, level);
       current = getNextToken();
-      printf("token: %d\n", current.type);
+      // printf("token: %d\n", current.type);
     }
   }
 }
@@ -145,7 +145,7 @@ void varDeclaration(int level, int *ptableindex, int *pdataindex)
   {
     enter(2, ptableindex, pdataindex, level);
     current = getNextToken();
-    printf("token: %d\n", current.type);
+    // printf("token: %d\n", current.type);
   }
   else
   {
@@ -157,12 +157,12 @@ void varDeclaration(int level, int *ptableindex, int *pdataindex)
 // Returns index of symbol table that id is located in
 int position(char *id, int ptableIndex, int levels)
 {
-  printf("\tPosition\n");
+  // printf("\tPosition\n");
   int pos = 0, prevdiff, diff = 0;
   int s = ptableIndex;
   int diffCount = 0;
 
-  printf("s = %d\n", s);
+  // printf("s = %d\n", s);
   while(s != 0)
   {
     if (strcmp(symbol_table[s].name, id) == 0)
@@ -223,7 +223,7 @@ char* trim(char *str)
 int parse(char *code)
 {
   // debugging
-  printf("\tParse\n");
+  // printf("\tParse\n");
 
   token *tptr;
   int lp = 0, rp, length, i, lev = 0, dx = 0;
@@ -417,7 +417,7 @@ void enter(int k, int *ptx, int *pdx, int lev) {
   char *id1;
   int ii, len;
   (*ptx)++; //table index tx is increased by 1
-  printf("ptx = %d\n", *ptx);
+  // printf("ptx = %d\n", *ptx);
   id1=current.str; //last identifier read
   len=strlen(current.str);
   for (ii=0;ii<=len;ii++) {
@@ -435,7 +435,7 @@ void enter(int k, int *ptx, int *pdx, int lev) {
       symbol_table[*ptx].level=lev;
       symbol_table[*ptx].addr=*pdx;
       (*pdx)++;
-      printf("ptableIndex = %d\n", *ptx);
+      // printf("ptableIndex = %d\n", *ptx);
   }
   //for procedures: updates L because M will change
   else {//procedure
@@ -483,10 +483,10 @@ void enter(int k, int *ptx, int *pdx, int lev) {
 void program()
 {
   // debugging
-  printf("\tProgram\n");
+  // printf("\tProgram\n");
 
   current = getNextToken();
-  printf("token: %d\n", current.type);
+  // printf("token: %d\n", current.type);
   block(0, 0);
   if (current.type != periodsym)
   {
@@ -499,7 +499,7 @@ void program()
 void block(int level, int tableIndex)
 {
   // debugging
-  printf("\tBlock\n");
+  // printf("\tBlock\n");
   if(MAX_LEXI_LEVELS < level)
   {
     print_error(26);
@@ -516,20 +516,20 @@ void block(int level, int tableIndex)
      if (current.type == constsym)
      {
         current = getNextToken();
-        printf("token: %d\n", current.type);
+        // printf("token: %d\n", current.type);
         while (current.type == identsym)
         {
          constDeclaration(level, &tableIndex, &dataIndex);
          while (current.type == commasym)
          {
            current = getNextToken();
-           printf("token: %d\n", current.type);
+           // printf("token: %d\n", current.type);
            constDeclaration(level, &tableIndex, &dataIndex);
          }
          if (current.type == semicolonsym)
          {
            current = getNextToken();
-           printf("token: %d\n", current.type);
+           // printf("token: %d\n", current.type);
          }
          else
          {
@@ -541,20 +541,20 @@ void block(int level, int tableIndex)
      if (current.type == varsym)
      {
        current = getNextToken();
-       printf("token: %d\n", current.type);
+       // printf("token: %d\n", current.type);
        while (current.type == identsym)
        {
          varDeclaration(level, &tableIndex, &dataIndex);
          while (current.type == commasym)
          {
            current = getNextToken();
-           printf("token: %d\n", current.type);
+           // printf("token: %d\n", current.type);
            varDeclaration(level, &tableIndex, &dataIndex);
          }
          if (current.type == semicolonsym)
          {
            current = getNextToken();
-           printf("token: %d\n", current.type);
+           // printf("token: %d\n", current.type);
          }
          else
          {
@@ -566,13 +566,13 @@ void block(int level, int tableIndex)
      while (current.type == procsym)
      {
        current = getNextToken();
-       printf("token: %d\n", current.type);
+       // printf("token: %d\n", current.type);
 
        if (current.type == identsym)
        {
          enter(3, &tableIndex, &dataIndex, level);
          current = getNextToken();
-         printf("token: %d\n", current.type);
+         // printf("token: %d\n", current.type);
        }
        else
        {
@@ -582,7 +582,7 @@ void block(int level, int tableIndex)
        if (current.type == semicolonsym)
        {
          current = getNextToken();
-         printf("token: %d\n", current.type);
+         // printf("token: %d\n", current.type);
        }
        else
        {
@@ -594,7 +594,7 @@ void block(int level, int tableIndex)
        if (current.type == semicolonsym)
        {
          current = getNextToken();
-         printf("token: %d\n", current.type);
+         // printf("token: %d\n", current.type);
        }
        else
        {
@@ -615,14 +615,14 @@ void block(int level, int tableIndex)
 void statement(int lev, int *ptx)
 {
   // debugging
-  printf("\tStatement\n");
+  // printf("\tStatement\n");
 
   int i, insIndex1, insIndex2;
   // printf("the current type is %d\n", current.type);
   if (current.type == identsym)
   {
     // printf("made it in here\n");
-    printf("ln 589 position(%s, %d, %d)\n", current.str, *ptx, lev);
+    // printf("ln 589 position(%s, %d, %d)\n", current.str, *ptx, lev);
     i = position(current.str, *ptx, lev);
     if (i == 0)
     {
@@ -636,11 +636,11 @@ void statement(int lev, int *ptx)
       // exit(0);
     }
     current = getNextToken();
-    printf("token: %d\n", current.type);
+    // printf("token: %d\n", current.type);
     if (current.type == becomessym)
     {
       current = getNextToken();
-      printf("token: %d\n", current.type);
+      // printf("token: %d\n", current.type);
     }
     else
     {
@@ -656,7 +656,7 @@ void statement(int lev, int *ptx)
   else if (current.type == callsym)
   {
     current = getNextToken();
-    printf("token: %d\n", current.type);
+    // printf("token: %d\n", current.type);
     if (current.type != identsym)
     {
       print_error(14); //call must be followed by an identifier
@@ -664,7 +664,7 @@ void statement(int lev, int *ptx)
     }
     else
     {
-      printf("ln 631 position(%s, %d, %d)\n", current.str, *ptx, lev);
+      // printf("ln 631 position(%s, %d, %d)\n", current.str, *ptx, lev);
       i = position(current.str, *ptx, lev);
       if (i == 0)
       {
@@ -682,18 +682,18 @@ void statement(int lev, int *ptx)
         // exit(0);
       }
       current = getNextToken();
-      printf("token: %d\n", current.type);
+      // printf("token: %d\n", current.type);
     }
   }
   else if (current.type == ifsym)
   {
     current = getNextToken();
-    printf("token: %d\n", current.type);
+    // printf("token: %d\n", current.type);
     condition(lev, ptx);
     if (current.type == thensym)
     {
       current = getNextToken();
-      printf("token: %d\n", current.type);
+      // printf("token: %d\n", current.type);
     }
     else
     {
@@ -709,7 +709,7 @@ void statement(int lev, int *ptx)
     if (current.type == elsesym)
     {
       current = getNextToken();
-      printf("token: %d\n", current.type);
+      // printf("token: %d\n", current.type);
 
       ins[insIndex1].m = insIndex + 1; // jumps past if
       insIndex1 = insIndex;
@@ -724,14 +724,14 @@ void statement(int lev, int *ptx)
   else if (current.type == beginsym)
   {
     current = getNextToken();
-    printf("token: %d\n", current.type);
+    // printf("token: %d\n", current.type);
     statement(lev, ptx);
 
      /**changed**/
      while (current.type == semicolonsym)
      {
        current = getNextToken();
-       printf("token: %d\n", current.type);
+       // printf("token: %d\n", current.type);
        statement(lev, ptx);
      }
 
@@ -750,7 +750,7 @@ void statement(int lev, int *ptx)
     if (current.type == endsym)
     {
       current = getNextToken();
-      printf("token: %d\n", current.type);
+      // printf("token: %d\n", current.type);
     }
     else
     {
@@ -764,14 +764,14 @@ void statement(int lev, int *ptx)
   {
     insIndex1 = insIndex;
     current = getNextToken();
-    printf("token: %d\n", current.type);
+    // printf("token: %d\n", current.type);
     condition(lev, ptx);
     insIndex2 = insIndex;
     emit(8, 0, 0); // 8 is JPC for op, 0 is for L and 0 for M
     if (current.type == dosym)
     {
       current = getNextToken();
-      printf("token: %d\n", current.type);
+      // printf("token: %d\n", current.type);
     }
     else
     {
@@ -787,7 +787,7 @@ void statement(int lev, int *ptx)
   else if (current.type == writesym)
   {
     current = getNextToken();
-    printf("token: %d\n", current.type);
+    // printf("token: %d\n", current.type);
     expression(lev, ptx);
     emit(9, 0, 1); // 9 is SIO1 for op, 0 is for L and 1 for M, write the top stack element to the screen
   }
@@ -795,9 +795,9 @@ void statement(int lev, int *ptx)
   else if (current.type == readsym)
   {
     current = getNextToken();
-    printf("token: %d\n", current.type);
+    // printf("token: %d\n", current.type);
     emit(10, 0, 2); // 10 is SIO2 for op, 0 is for L and 1 for M, write the top stack element to the screen
-    printf("ln 764 position(%s, %d, %d)\n", current.str, *ptx, lev);
+    // printf("ln 764 position(%s, %d, %d)\n", current.str, *ptx, lev);
     i = position(current.str, *ptx, lev);
     if (i == 0)
     {
@@ -815,7 +815,7 @@ void statement(int lev, int *ptx)
       emit(4, symbol_table[i].level, symbol_table[i].addr); // 4 is STO for op, symbol_table[i].level is for L, table[i].adr for M
     }
      current = getNextToken();
-     printf("token: %d\n", current.type);
+     // printf("token: %d\n", current.type);
   }
 }
 
@@ -823,13 +823,13 @@ void statement(int lev, int *ptx)
 void condition(int level, int* ptableindex)
 {
   // debugging
-  printf("\tStatement\n");
+  // printf("\tStatement\n");
 
   int rel_switch;
   if (current.type == oddsym)
   {
     current = getNextToken();
-    printf("token: %d\n", current.type);
+    // printf("token: %d\n", current.type);
     expression(level, ptableindex);
     emit(2, 0, 6);
   }
@@ -847,7 +847,7 @@ void condition(int level, int* ptableindex)
     {
       rel_switch = current.type;
       current = getNextToken();
-      printf("token: %d\n", current.type);
+      // printf("token: %d\n", current.type);
       expression(level, ptableindex);
 
       if(rel_switch == 9)
@@ -882,14 +882,14 @@ void condition(int level, int* ptableindex)
 void expression(int lev, int *ptx)
 {
   // debugging
-  printf("\tExpression\n");
+  // printf("\tExpression\n");
 
   int addop;
   if (current.type == plussym || current.type == minussym)
   {
     addop = current.type;
     current = getNextToken();
-    printf("token: %d\n", current.type);
+    // printf("token: %d\n", current.type);
     term(lev, ptx);
     if(addop == minussym)
       emit(2, 0, 1); // 2 is OPR for op, 1 is NEG for M inside OPR
@@ -902,7 +902,7 @@ void expression(int lev, int *ptx)
   {
     addop = current.type;
     current = getNextToken();
-    printf("token: %d\n", current.type);
+    // printf("token: %d\n", current.type);
     term(lev, ptx);
     if (addop == plussym)
     {
@@ -919,7 +919,7 @@ void expression(int lev, int *ptx)
 void term(int lev, int *ptx)
 {
   // debugging
-  printf("\tTerm\n");
+  // printf("\tTerm\n");
 
   int mulop;
   factor(lev, ptx);
@@ -927,7 +927,7 @@ void term(int lev, int *ptx)
   {
     mulop = current.type;
     current = getNextToken();
-    printf("token: %d\n", current.type);
+    // printf("token: %d\n", current.type);
     factor(lev, ptx);
     if (mulop == multsym)
     {
@@ -944,7 +944,7 @@ void term(int lev, int *ptx)
 void factor(int lev, int *ptx)
 {
   // debugging
-  printf("\tFacter\n");
+  // printf("\tFacter\n");
 
   int i, kind, level, adr, val;
 
@@ -952,7 +952,7 @@ void factor(int lev, int *ptx)
   {
     if (current.type == identsym)
     {
-      printf("ln 919 position(%s, %d, %d)\n", current.str, *ptx, lev);
+      // printf("ln 919 position(%s, %d, %d)\n", current.str, *ptx, lev);
       i = position(current.str, *ptx, lev);
       if (i == 0)
       {
@@ -980,7 +980,7 @@ void factor(int lev, int *ptx)
         }
       }
       current = getNextToken();
-      printf("token: %d\n", current.type);
+      // printf("token: %d\n", current.type);
     }
     else if (current.type == numbersym)
     {
@@ -992,17 +992,17 @@ void factor(int lev, int *ptx)
       }
       emit(1, 0, num); // 1 is LIT for op, num is for M inside LIT
       current = getNextToken();
-      printf("token: %d\n", current.type);
+      // printf("token: %d\n", current.type);
     }
     else if (current.type == lparentsym)
     {
       current = getNextToken();
-      printf("token: %d\n", current.type);
+      // printf("token: %d\n", current.type);
       expression(lev, ptx);
       if (current.type == rparentsym)
       {
         current = getNextToken();
-        printf("token: %d\n", current.type);
+        // printf("token: %d\n", current.type);
       }
       else
       {
@@ -1017,7 +1017,7 @@ void factor(int lev, int *ptx)
 void emit(int op, int l, int m)
 {
   // debugging
-  printf("\tEmit\tinsIndex: %d\n", insIndex);
+  // printf("\tEmit\tinsIndex: %d\n", insIndex);
   // printf("\nins:\t%d\t%d\t%d\n%d\n", ins[insIndex].op, ins[insIndex].l, ins[insIndex].m, listIndex);
 
   ins[insIndex].op = op;
@@ -1299,6 +1299,13 @@ void output(int count, bool l, bool a, bool v)
     {
       fprintf(fpout, "%d %d %d %d \n", ins[i].op, ins[i].r, ins[i].l, ins[i].m);
     }
+
+    // // Printing generated code
+    // for (i = 0; i < insIndex * 4; i++)
+    // {
+    //   fprintf(fpout, "%d", as_code[i]);
+    //   (i % 4 == 0) ? fprintf(fpout, "\n") : fprintf(fpout, "\t");
+    // }
   }
   // If commanded to print stack trace, run VM
   if (v == true)
@@ -1313,12 +1320,6 @@ void output(int count, bool l, bool a, bool v)
       as_code[i + 4] = ins[i].m;
     }
 
-    // Printing generated code
-    for (i = 0; i < insIndex * 4; i++)
-    {
-      fprintf(fpout, "%d", as_code[i]);
-      (i % 4 == 0) ? fprintf(fpout, "\n") : fprintf(fpout, "\t");
-    }
     // Printing virtual machine execution trace
     executionCycle(as_code);
   }
@@ -1646,23 +1647,23 @@ void super_output(int pc, int bp, int sp,int data_stack[], int reg[], int activa
 {
   int x;
   int g =0;
-  printf("%d\t%d\t%d\t", pc, bp, sp);
+  fprintf(fpout, "%d\t%d\t%d\t", pc, bp, sp);
   for (x = 0; x < 8; x++)
   {
-    printf("%d ", reg[x]);
+    fprintf(fpout, "%d ", reg[x]);
   }
-  printf("\nStack:");
+  fprintf(fpout, "\nStack:");
   for (x = 1; x < sp; x++)
   {
     if(activate == 1 && g ==6)
     {
-      printf("|");
+      fprintf(fpout, "|");
     }
     g++;
 
     //if( x != 7)
     //{
-        printf("%d ", data_stack[x]);
+        fprintf(fpout, "%d ", data_stack[x]);
     //}
     if(x == 7)
     {
@@ -1670,7 +1671,7 @@ void super_output(int pc, int bp, int sp,int data_stack[], int reg[], int activa
     }
 
   }
-  printf("\n");
+  fprintf(fpout, "\n");
   return;
 }
 
@@ -1686,18 +1687,18 @@ void executionCycle(int *as_code)
 
 
 
-  printf("\t\tpc\tbp\tsp\tregisters\n");
-  printf("Initial values\t%d\t%d\t%d\t", pc, bp, sp);
+  fprintf(fpout, "\t\tpc\tbp\tsp\tregisters\n");
+  fprintf(fpout, "Initial values\t%d\t%d\t%d\t", pc, bp, sp);
   for (x = 0; x < 8; x++)
   {
-    printf("%d ", reg[x]);
+    fprintf(fpout, "%d ", reg[x]);
   }
-  printf("\nStack: ");
+  fprintf(fpout, "\nStack: ");
   for (x = 0; x < MAX_DATA_STACK_HEIGHT; x++)
   {
-    printf("%d ", data_stack[x]);
+    fprintf(fpout, "%d ", data_stack[x]);
   }
-  printf("\n");
+  fprintf(fpout, "\n");
 
   while (halt == 1)
   {
@@ -1705,13 +1706,13 @@ void executionCycle(int *as_code)
     switch(ir->op)
     {
        case 1:
-        printf("%d lit %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+        fprintf(fpout, "%d lit %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
         reg[ir->r] = ir->m;
         super_output(pc, bp, sp, data_stack, reg, activate);
         break;
 
        case 2:
-        printf("%d rtn %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+        fprintf(fpout, "%d rtn %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
         sp = bp - 1;
         bp = data_stack[sp + 3];
         pc = data_stack[sp + 4];
@@ -1719,19 +1720,19 @@ void executionCycle(int *as_code)
         break;
 
        case 3:
-        printf("%d lod %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+        fprintf(fpout, "%d lod %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
         reg[ir->r] = data_stack[vm_base(ir->l, bp, data_stack) + ir->m];
         super_output(pc, bp, sp, data_stack, reg, activate);
         break;
 
        case 4:
-        printf("%d sto %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+        fprintf(fpout, "%d sto %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
         data_stack[ vm_base(ir->l, bp, data_stack) + ir->m] = reg[ir->r];
         super_output(pc, bp, sp, data_stack, reg, activate);
         break;
 
        case 5:
-        printf("%d cal %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+        fprintf(fpout, "%d cal %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
         data_stack[sp + 1]  = 0;
         data_stack[sp + 2]  =  vm_base(ir->l, bp, data_stack);
         data_stack[sp + 3]  = bp;
@@ -1743,19 +1744,19 @@ void executionCycle(int *as_code)
         break;
 
        case 6:
-         printf("%d inc %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+         fprintf(fpout, "%d inc %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
          sp = sp + ir->m;
          super_output(pc, bp, sp, data_stack, reg, activate);
          break;
 
        case 7:
-         printf("%d jmp %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+         fprintf(fpout, "%d jmp %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
          pc = ir->m;
          super_output(pc, bp, sp, data_stack, reg, activate);
          break;
 
        case 8:
-         printf("%d jpc %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+         fprintf(fpout, "%d jpc %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
          if(reg[ir->r] == 0)
          {
              pc = ir->m;
@@ -1765,105 +1766,109 @@ void executionCycle(int *as_code)
 
 ////////////////////////////////////?????????????????????
        case 9:
-         printf("%d sio %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
-         printf("%d", reg[ir->r]);
+         fprintf(fpout, "%d sio %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+         fprintf(fpout, "%d", reg[ir->r]);
          super_output(pc, bp, sp, data_stack, reg, activate);
          break;
 
          case 10:
-           printf("%d sio %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+           fprintf(fpout, "%d sio %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
            //stated in class to let the user know what they were scanning in
-           printf("read in the register at index ir->r");
+           fprintf(fpout, "read in the register at index ir->r");
            scanf("%d", &reg[ir->r]);
            super_output(pc, bp, sp, data_stack, reg, activate);
            break;
 
         case 11:
-          printf("%d sio %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+          fprintf(fpout, "%d sio %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
           halt = 0;
           super_output(pc, bp, sp, data_stack, reg, activate);
           break;
 
         case 12:
-          printf("%d neg %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+          fprintf(fpout, "%d neg %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
           reg[ir->r] = -reg[ir->r];
           super_output(pc, bp, sp, data_stack, reg, activate);
           break;
 
         case 13:
-          printf("%d add %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+          fprintf(fpout, "%d add %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
           reg[ir->r] = reg[ir->l] + reg[ir->m];
           super_output(pc, bp, sp, data_stack, reg, activate);
           break;
 
         case 14:
-          printf("%d sub %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+          fprintf(fpout, "%d sub %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
           reg[ir->r] = reg[ir->l] - reg[ir->m];
           super_output(pc, bp, sp, data_stack, reg, activate);
           break;
 
         case 15:
-          printf("%d mul %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+          fprintf(fpout, "%d mul %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
           reg[ir->r] = reg[ir->l] * reg[ir->m];
           super_output(pc, bp, sp, data_stack, reg, activate);
           break;
 
         case 16:
-          printf("%d div %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+          fprintf(fpout, "%d div %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
           reg[ir->r] = reg[ir->l] / reg[ir->m];
           super_output(pc, bp, sp, data_stack, reg, activate);
           break;
 
         case 17:
-          printf("%d odd %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+          fprintf(fpout, "%d odd %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
           reg[ir->r] = reg[ir->l] % 2;
           super_output(pc, bp, sp, data_stack, reg, activate);
           break;
 
         case 18:
-          printf("%d mod %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+          fprintf(fpout, "%d mod %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
           reg[ir->r] = reg[ir->l] %  reg[ir->m];
           super_output(pc, bp, sp, data_stack, reg, activate);
           break;
 
         case 19:
-          printf("%d eql %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+          fprintf(fpout, "%d eql %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
           reg[ir->r] = reg[ir->l] == reg[ir->m];
           super_output(pc, bp, sp, data_stack, reg, activate);
           break;
 
         case 20:
-          printf("%d neq %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+          fprintf(fpout, "%d neq %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
           reg[ir->r] = reg[ir->l] != reg[ir->m];
           super_output(pc, bp, sp, data_stack, reg, activate);
           break;
 
         case 21:
-          printf("%d lss %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+          fprintf(fpout, "%d lss %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
           reg[ir->r] = reg[ir->l] < reg[ir->m];
           super_output(pc, bp, sp, data_stack, reg, activate);
           break;
 
         case 22:
-          printf("%d leq %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+          fprintf(fpout, "%d leq %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
           reg[ir->r] = reg[ir->l] <= reg[ir->m];
           super_output(pc, bp, sp, data_stack, reg, activate);
           break;
 
          case 23:
-          printf("%d gtr %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+          fprintf(fpout, "%d gtr %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
           reg[ir->r] = reg[ir->l] <= reg[ir->m];
           super_output(pc, bp, sp, data_stack, reg, activate);
           break;
 
-        default:
-          printf("%d geq %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
+        case 24:
+          fprintf(fpout, "%d geq %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
           reg[ir->r] = reg[ir->l] >= reg[ir->m];
           super_output(pc, bp, sp, data_stack, reg, activate);
+
+        default:
+          printf("\nInvalid opcode\n\n");
       }
       // printf("Instruction executed...\n");
 
       ir = fetchCycle(as_code, ir, pc++);
+      printf("ir->op == %d\n", ir->op);
 
   }
   return;
@@ -1885,116 +1890,117 @@ int vm_base(int l, int vm_base, int* data_stack)
 void print_stack(int* as_code, int i)
 {
     int* op, r, l, m;
-    printf("Line \t OP \t R \t L \t M\n");
+    fprintf(fpout, "Line \t OP \t R \t L \t M\n");
     int lines = i/4;
     int k =0;
     for(int j=0; j<=lines; j++)
     {
-        printf("%d \t", j); // line
+        fprintf(fpout, "%d \t", j); // line
         switch (as_code[k])
         {
           case 1:
-            printf("lit \t");
+            fprintf(fpout, "lit \t");
             break;
 
           case 2:
-            printf("rtn \t");
+            fprintf(fpout, "rtn \t");
             break;
 
           case 3:
-            printf("lod \t");
+            fprintf(fpout, "lod \t");
             break;
 
           case 4:
-            printf("sto \t");
+            fprintf(fpout, "sto \t");
             break;
 
           case 5:
-            printf("cal \t");
+            fprintf(fpout, "cal \t");
             break;
 
           case 6:
-            printf("inc \t");
+            fprintf(fpout, "inc \t");
             break;
 
           case 7:
-            printf("jmp \t");
+            fprintf(fpout, "jmp \t");
             break;
 
           case 8:
-            printf("jpc \t");
+            fprintf(fpout, "jpc \t");
             break;
 
           case 9:
-            printf("sio \t");
+            fprintf(fpout, "sio \t");
             break;
 
           case 10:
-            printf("sio \t");
+            fprintf(fpout, "sio \t");
             break;
 
           case 11:
-            printf("sio \t");
+            fprintf(fpout, "sio \t");
             break;
 
           case 12:
-            printf("neg \t");
+            fprintf(fpout, "neg \t");
             break;
 
           case 13:
-            printf("add \t");
+            fprintf(fpout, "add \t");
             break;
 
           case 14:
-            printf("sub \t");
+            fprintf(fpout, "sub \t");
             break;
 
           case 15:
-            printf("mul \t");
+            fprintf(fpout, "mul \t");
             break;
 
           case 16:
-            printf("div \t");
+            fprintf(fpout, "div \t");
             break;
 
           case 17:
-            printf("odd \t");
+            fprintf(fpout, "odd \t");
             break;
 
           case 18:
-            printf("mod \t");
+            fprintf(fpout, "mod \t");
             break;
 
           case 19:
-            printf("eql \t");
+            fprintf(fpout, "eql \t");
             break;
 
           case 20:
-            printf("neq \t");
+            fprintf(fpout, "neq \t");
             break;
 
           case 21:
-            printf("lss \t");
+            fprintf(fpout, "lss \t");
             break;
 
           case 22:
-            printf("leq \t");
+            fprintf(fpout, "leq \t");
             break;
 
           case 23:
-            printf("gtr \t");
+            fprintf(fpout, "gtr \t");
             break;
 
           case 24:
-            printf("geq \t");
+            fprintf(fpout, "geq \t");
             break;
         }
         k++;
-        printf("%d \t", as_code[k]); // r
+        fprintf(fpout, "%d \t", as_code[k]); // r
         k++;
-        printf("%d \t", as_code[k]); // l
+        fprintf(fpout, "%d \t", as_code[k]); // l
         k++;
-        printf("%d \n", as_code[k]); // m
+        fprintf(fpout, "%d \n", as_code[k]); // m
         k++;
     }
 }
+
