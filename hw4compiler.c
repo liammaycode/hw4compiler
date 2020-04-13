@@ -68,6 +68,7 @@ void expression(int lev, int *ptx);
 void condition(int level, int* ptableindex);
 void term(int lev, int *ptx);
 void factor(int lev, int *ptx);
+void output(int count, bool l, bool a, bool v);
 instruction *create_instruction(int op, int r, int l, int m);
 instruction *fetchCycle(int *as_code, instruction *ir, int pc);
 void executionCycle(int *as_code);
@@ -971,7 +972,7 @@ void factor(int lev, int *ptx)
         }
         else if (kind == 2)
         {//var
-          emit(3, lev-level, adr); // 3 is LOD for op, lev-level is L inside LOD, adr is for M inside LOD
+          emit(3, lev - level, adr); // 3 is LOD for op, lev-level is L inside LOD, adr is for M inside LOD
         }
         else
         {
@@ -1018,7 +1019,7 @@ void emit(int op, int l, int m)
 {
   // debugging
   // printf("\tEmit\tinsIndex: %d\n", insIndex);
-  // printf("\nins:\t%d\t%d\t%d\n%d\n", ins[insIndex].op, ins[insIndex].l, ins[insIndex].m, listIndex);
+  printf("\nadding\t%d\t%d\t%d\tat [%d]\n", op, l, m, insIndex);
 
   ins[insIndex].op = op;
   ins[insIndex].l = l;
@@ -1257,6 +1258,16 @@ void output(int count, bool l, bool a, bool v)
 {
   int i = 0;
   char buffer[13] = {'\0'};
+  // Converting instruction array to int array
+  int as_code[MAX_CODE_LENGTH];
+  for (i = 0; i < insIndex; i++)
+  {
+    as_code[i + 1] = ins[i].op;
+    as_code[i + 2] = ins[i].r;
+    as_code[i + 3] = ins[i].l;
+    as_code[i + 4] = ins[i].m;
+  }
+  as_code[i + 5] = '\0';
 
   // In the absence of commands, just printing "in" and "out"
   if (l == false && a == false && v == false)
@@ -1294,32 +1305,26 @@ void output(int count, bool l, bool a, bool v)
     // debugging
     // printf("a is true\nThere are %d elements in ins[]\n", insIndex);
     i = 0;
-    //while((ins[i].op != 0 && ins[i].r != 0 && ins[i].l !=0 && ins[i].m !=0)) // <--- not ever entering loop because ins[] never gets filled ???
-    for(i = 0; i < insIndex; i++)
-    {
-      fprintf(fpout, "%d %d %d %d \n", ins[i].op, ins[i].r, ins[i].l, ins[i].m);
-    }
 
-    // // Printing generated code
-    // for (i = 0; i < insIndex * 4; i++)
+    // for(i = 0; i < insIndex; i++)
     // {
-    //   fprintf(fpout, "%d", as_code[i]);
-    //   (i % 4 == 0) ? fprintf(fpout, "\n") : fprintf(fpout, "\t");
+    //   fprintf(fpout, "%d %d %d %d \n", ins[i].op, ins[i].r, ins[i].l, ins[i].m);
     // }
+
+    // Printing the header
+    fprintf(fpout, "Line\top\tr\tl\tm\n");
+
+    // Printing generated code
+    for (i = 0; i < (insIndex * 4); i++)
+    {
+      fprintf(fpout, "%d", as_code[i]);
+      ((i + 1) % 4 == 0) ? fprintf(fpout, "\n") : fprintf(fpout, "\t");
+    }
+    fprintf(fpout, "\n\n");
   }
   // If commanded to print stack trace, run VM
   if (v == true)
   {
-    // Converting instruction array to int array
-    int as_code[MAX_CODE_LENGTH];
-    for (i = 0; i < insIndex; i++)
-    {
-      as_code[i + 1] = ins[i].op;
-      as_code[i + 2] = ins[i].r;
-      as_code[i + 3] = ins[i].l;
-      as_code[i + 4] = ins[i].m;
-    }
-
     // Printing virtual machine execution trace
     executionCycle(as_code);
   }
@@ -1603,6 +1608,30 @@ int main(int argc, char **argv)
   listIndex = 0;
 
   program();
+
+  // debugging ////////////////////////////////////////////
+  int as_code[MAX_CODE_LENGTH];
+  for (i = 0; i < insIndex; i++)
+  {
+    as_code[i + 1] = ins[i].op;
+    as_code[i + 2] = ins[i].r;
+    as_code[i + 3] = ins[i].l;
+    as_code[i + 4] = ins[i].m;
+  }
+  as_code[i + 5] = '\0';
+
+  // Printing the header
+  printf("\nop\tr\tl\tm\n");
+
+  // Printing generated code
+  for (i = 0; i < (insIndex * 4); i++)
+  {
+    printf( "%d", as_code[i]);
+    ((i + 1) % 4 == 0) ? printf( "\n") : printf( "\t");
+  }
+  printf( "\n\n");
+//////////////////////////////////////////////////////////
+
   output(list_size, l, a, v);
 
   fclose(fpin);
@@ -1646,7 +1675,7 @@ instruction *fetchCycle(int *as_code, instruction *ir, int pc)
 void super_output(int pc, int bp, int sp,int data_stack[], int reg[], int activate)
 {
   int x;
-  int g =0;
+  int g = 0;
   fprintf(fpout, "%d\t%d\t%d\t", pc, bp, sp);
   for (x = 0; x < 8; x++)
   {
@@ -2003,4 +2032,3 @@ void print_stack(int* as_code, int i)
         k++;
     }
 }
-
