@@ -7,7 +7,8 @@
 // analyzer, a parser, an intermediate code generator, and a virtual machine.
 // This code takes as input a text file containing PL/0 code. It then represents
 // the text as a list of lexemes and converts those lexemes into assembly code.
-// That assembly code is then passed to our virtual machine to be executed.#include <stdio.h>
+// That assembly code is then passed to our virtual machine to be executed.
+
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
@@ -50,7 +51,7 @@ typedef struct
 {
   int kind; // const = 1, var = 2, proc = 3
   char name[MAX_TYPE_LENGTH]; // name up to 11 characters
-  int val; // ascii value
+  int val; // asci value
   int level; // L
   int addr; // M
 } symbol;
@@ -76,7 +77,6 @@ int vm_base(int l, int vm_base, int* data_stack);
 
 FILE *fpin, *fpout;
 token list[MAX_CODE_LENGTH], current;
-// instruction ins[MAX_CODE_LENGTH];
 symbol symbol_table[MAX_SYMBOL_TABLE_SIZE];
 instruction *ins;
 int insIndex = 0, listIndex = 0, lit_m, num;
@@ -111,26 +111,27 @@ token getNextToken()
   return current;
 }
 
-// comment
 void constDeclaration(int level, int *ptableIndex, int *pdataindex)
 {
-  current = getNextToken();
-  if (current.type == becomessym)
+  if (current.type == identsym)
   {
+    current = getNextToken();
     if (current.type == becomessym)
     {
-      print_error(1);
-    }
-    current = getNextToken();
-    if (current.type == numbersym)
-    {
-      enter(1, ptableIndex, pdataindex, level);
+      if (current.type == becomessym)
+      {
+        print_error(1);
+      }
       current = getNextToken();
+      if (current.type == numbersym)
+      {
+        enter(1, ptableIndex, pdataindex, level);
+        current = getNextToken();
+      }
     }
   }
 }
 
-// comment
 void varDeclaration(int level, int *ptableindex, int *pdataindex)
 {
   if (current.type == identsym)
@@ -202,7 +203,7 @@ char* trim(char *str)
   return trimmed;
 }
 
-// This section [will hold] the lexical analyzer and parser.
+// This section holds the lexical analyzer and parser.
 // The lexical analyzer tokenizes the code and labels the tokens as
 // identifiers, reserved words, operators, and special symbols. It then checks
 // for lexical errors only (order of words and symbols).
@@ -391,70 +392,36 @@ int parse(char *code)
 }
 
 //This enters a symbol into the table
-void enter(int k, int *ptx, int *pdx, int lev) {
+void enter(int k, int *ptx, int *pdx, int lev)
+{
+  char *str1;
+  int i, len;
+  (*ptx)++;
+  str1 = current.str;
+  len = strlen(current.str);
 
-  char *id1;
-  int ii, len;
-  (*ptx)++; //table index tx is increased by 1
-  id1=current.str; //last identifier read
-  len=strlen(current.str);
-  for (ii=0;ii<=len;ii++) {
-      symbol_table[*ptx].name[ii]=*id1; //id is recorded in .name
-      id1++;
+  for (i = 0; i <= len; i++)
+  {
+    symbol_table[*ptx].name[i] = *str1;
+    str1++;
   }
-  //updates kind
+
   symbol_table[*ptx].kind=k;
-  //for constants: updates value
-   if (k==1) {//const
-      symbol_table[*ptx].val=num;
+  if (k == 1)
+  {
+    symbol_table[*ptx].val=num;
   }
-  //for variables: updates L and M
-  else if (k==2) {//var
-      symbol_table[*ptx].level=lev;
-      symbol_table[*ptx].addr=*pdx;
-      (*pdx)++;
+  else if (k == 2)
+  {
+    symbol_table[*ptx].level=lev;
+    symbol_table[*ptx].addr=*pdx;
+    (*pdx)++;
   }
-  //for procedures: updates L because M will change
-  else {//procedure
-      symbol_table[*ptx].level=lev;
+  else
+  {
+    symbol_table[*ptx].level=lev;
   }
 }
-// // Enters info to symbol table
-// void enter(int k, int *ptableIndex, int *pdataindex, int level)
-// {
-//   // debugging
-//   printf("\tEnter\n");
-//
-//   int i = 0;
-//   *ptableIndex++;
-//   printf("ptableIndex = %d\n", *ptableIndex);
-//   char *lastIdentifier = current.str;
-//   int length = strlen(current.str);
-//   while(i <= length)
-//   {
-//     symbol_table[*ptableIndex].name[i] = *lastIdentifier;
-//     i++;
-//     lastIdentifier++;
-//   }
-//
-//   symbol_table[*ptableIndex].kind = k;
-//
-//   switch(k)
-//   {
-//     case 1:
-//       symbol_table[*ptableIndex].val = lit_m;
-//       break;
-//
-//     case 2:
-//       symbol_table[*ptableIndex].level = level;
-//       symbol_table[*ptableIndex].addr = *pdataindex;
-//       (*pdataindex)++;
-//       break;
-//
-//     default:
-//     symbol_table[*ptableIndex].level = level;
-//   }
-// }
 
 // Handles case of no '.' at the end of block
 void program()
@@ -467,7 +434,6 @@ void program()
   }
 }
 
-// block description
 void block(int level, int tableIndex)
 {
   if(MAX_LEXI_LEVELS < level)
@@ -548,6 +514,8 @@ void block(int level, int tableIndex)
        }
 
        block(level+1, tableIndex);
+       emit(2, 0, 0); // Return
+
        if (current.type == semicolonsym)
        {
          current = getNextToken();
@@ -563,10 +531,8 @@ void block(int level, int tableIndex)
    insIndex0 = insIndex;
    emit(6, 0, dataIndex); // INC
    statement(level, &tableIndex);
-   emit(2, 0, 0);
 }
 
-// Statement
 void statement(int lev, int *ptx)
 {
   int i, insIndex1, insIndex2;
@@ -575,11 +541,11 @@ void statement(int lev, int *ptx)
     i = position(current.str, *ptx, lev);
     if (i == 0)
     {
-      print_error(11); //Undeclared identifier. These are causing two of the issues
+      print_error(11); // Undeclared identifier
     }
     else if (symbol_table[i].kind != 2)
     {
-      print_error(12); //Assignment to constant or procedure is not allowed
+      print_error(12); // Assignment to constant or procedure is not allowed
       i = 0;
     }
     current = getNextToken();
@@ -589,12 +555,12 @@ void statement(int lev, int *ptx)
     }
     else
     {
-      print_error(13); //Assignment operator expected.
+      print_error(13); // Assignment operator expected.
     }
     expression(lev, ptx);
     if (i != 0)
     {
-      emit(4, symbol_table[i].level, symbol_table[i].addr); // 4 is STO for op, symbol_table[i].level is for L, table[i].adr for M
+      emit(4, symbol_table[i].level, symbol_table[i].addr);
     }
   }
   else if (current.type == callsym)
@@ -602,7 +568,7 @@ void statement(int lev, int *ptx)
     current = getNextToken();
     if (current.type != identsym)
     {
-      print_error(14); //call must be followed by an identifier
+      print_error(14);
     }
     else
     {
@@ -612,13 +578,12 @@ void statement(int lev, int *ptx)
         print_error(11); //Undeclared identifier.
       }
       else if (symbol_table[i].kind == 3)
-      {//proc
-        emit(5, symbol_table[i].level, symbol_table[i].addr); // 5 is CAL for op, symbol_table[i].level is for L, table[i].adr for M
-          //statement::= ["call" ident | ...]
+      {
+        emit(5, symbol_table[i].level, symbol_table[i].addr);
       }
       else
       {
-        print_error(15); //Call of a constant or variable is meaningless
+        print_error(15); // Call of a constant or variable is meaningless
       }
       current = getNextToken();
     }
@@ -637,50 +602,32 @@ void statement(int lev, int *ptx)
     }
 
     insIndex1 = insIndex;
-    emit(8, 0, 0); // 8 is JPC for op, 0 is for L and 0 for M
+    emit(8, 0, 0);
     statement(lev, ptx);
 
-    /**working on else**/
+    // else functionality
     if (current.type == elsesym)
     {
       current = getNextToken();
 
-      ins[insIndex1].m = insIndex + 1; // jumps past if
+      ins[insIndex1].m = insIndex + 1;
       insIndex1 = insIndex;
-      emit(7, 0, 0); // 7 is JMP for op, 0 is for L and insIndex1 for M
-      //updates JPC M value
+      emit(7, 0, 0);
       statement(lev, ptx);
     }
-    ins[insIndex1].m = insIndex; //jumps past else (if theres an else statement) otherwise jumps past if
+    ins[insIndex1].m = insIndex;
   }
-
-  //begin <condition> end <statement>
   else if (current.type == beginsym)
   {
     current = getNextToken();
-    // printf("token: %d\n", current.type);
     statement(lev, ptx);
 
-     /**changed**/
-     while (current.type == semicolonsym)
-     {
-       current = getNextToken();
-       // printf("token: %d\n", current.type);
-       statement(lev, ptx);
-     }
-
-    /**original**/
-    /*while((token==semicolonsym)||(token==beginsym)||
-     (token==ifsym)||(token==elsesym)||(token==whilesym)||
-          (token==callsym)||(token==writesym)||(token==readsym)) {
-        if (token==semicolonsym) {
-            token = getNextToken();
-        }
-        else {
-            error(10);  //Semicolon between statements missing.
-        }
-        statement(lev,ptx, ifp, code, table);
-    }*/ //end original
+    while (current.type == semicolonsym)
+    {
+      current = getNextToken();
+      // printf("token: %d\n", current.type);
+      statement(lev, ptx);
+    }
     if (current.type == endsym)
     {
       current = getNextToken();
@@ -688,12 +635,9 @@ void statement(int lev, int *ptx)
     }
     else
     {
-      print_error(17);  //Semicolon or } expected.
-      // exit(0);
+      print_error(17); //Semicolon or } expected.
     }
   }
-
-  //while <condition> do <statement>
   else if (current.type == whilesym)
   {
     insIndex1 = insIndex;
@@ -701,7 +645,7 @@ void statement(int lev, int *ptx)
     // printf("token: %d\n", current.type);
     condition(lev, ptx);
     insIndex2 = insIndex;
-    emit(8, 0, 0); // 8 is JPC for op, 0 is for L and 0 for M
+    emit(8, 0, 0);
     if (current.type == dosym)
     {
       current = getNextToken();
@@ -709,46 +653,41 @@ void statement(int lev, int *ptx)
     }
     else
     {
-      print_error(18);  // do expected
-      // exit(0);
+      print_error(18); // do expected
     }
     statement(lev, ptx);
-    emit(7, 0, insIndex1); // 7 is JMP for op, 0 is for L and insIndex1 for M, jump to instruction insIndex1
+    emit(7, 0, insIndex1);
     ins[insIndex2].m = insIndex;
   }
-
-  //write needs to write
   else if (current.type == writesym)
   {
     current = getNextToken();
     // printf("token: %d\n", current.type);
     expression(lev, ptx);
-    emit(9, 0, 1); // 9 is SIO1 for op, 0 is for L and 1 for M, write the top stack element to the screen
+    emit(9, 0, 1);
   }
-  //read needs to read and STO
   else if (current.type == readsym)
   {
     current = getNextToken();
-    emit(10, 0, 2); // 10 is SIO2 for op, 0 is for L and 1 for M, write the top stack element to the screen
+    emit(10, 0, 2);
     i = position(current.str, *ptx, lev);
     if (i == 0)
     {
-      print_error(11); //Undeclared identifier.
+      print_error(11); // Undeclared identifier.
     }
     else if (symbol_table[i].kind != 2)
-    { //var
-      print_error(12); //Assignment to constant or procedure is not allowed
+    {
+      print_error(12); // Assignment to constant or procedure is not allowed
       i = 0;
     }
     if (i != 0)
     {
-      emit(4, symbol_table[i].level, symbol_table[i].addr); // 4 is STO for op, symbol_table[i].level is for L, table[i].adr for M
+      emit(4, symbol_table[i].level, symbol_table[i].addr);
     }
      current = getNextToken();
   }
 }
 
-// condition description
 void condition(int level, int* ptableindex)
 {
   int rel_switch;
@@ -801,7 +740,6 @@ void condition(int level, int* ptableindex)
   }
 }
 
-// expression explanation
 void expression(int lev, int *ptx)
 {
   int addop;
@@ -811,7 +749,7 @@ void expression(int lev, int *ptx)
     current = getNextToken();
     term(lev, ptx);
     if(addop == minussym)
-      emit(2, 0, 1); // 2 is OPR for op, 1 is NEG for M inside OPR
+      emit(2, 0, 1); // OPR, 0, OPR_NEG
   }
   else
   {
@@ -824,16 +762,15 @@ void expression(int lev, int *ptx)
     term(lev, ptx);
     if (addop == plussym)
     {
-      emit(2, 0, 2); // 2 is OPR for op, 2 is ADD for M inside OPR
+      emit(2, 0, 2); // addition
     }
     else
     {
-      emit(2, 0, 3); // 2 is OPR for op, 3 is SUB for M inside OPR
+      emit(2, 0, 3); // subtraction
     }
   }
 }
 
-// term explanation
 void term(int lev, int *ptx)
 {
   int mulop;
@@ -845,16 +782,15 @@ void term(int lev, int *ptx)
     factor(lev, ptx);
     if (mulop == multsym)
     {
-      emit(2, 0, 4); // 2 is OPR for op, 4 is MUL for M inside OPR
+      emit(2, 0, 4);
     }
     else
     {
-      emit(2, 0, 5); // 2 is OPR for op, 5 is DIV for M inside OPR
+      emit(2, 0, 5);
     }
   }
 }
 
-// factor explanation
 void factor(int lev, int *ptx)
 {
   int i, kind, level, adr, val;
@@ -875,17 +811,16 @@ void factor(int lev, int *ptx)
         adr = symbol_table[i].addr;
         val = symbol_table[i].val;
         if (kind == 1)
-        {//const
-          emit(1, 0, val); // 1 is LIT for op, val is for M inside LIT
+        {
+          emit(1, 0, val);
         }
         else if (kind == 2)
-        {//var
-          emit(3, lev - level, adr); // 3 is LOD for op, lev-level is L inside LOD, adr is for M inside LOD
+        {
+          emit(3, lev - level, adr);
         }
         else
         {
           print_error(21); // Expression must not contain a procedure identifier
-          // exit(0);
         }
       }
       current = getNextToken();
@@ -893,11 +828,11 @@ void factor(int lev, int *ptx)
     else if (current.type == numbersym)
     {
       if ((num) > 2047)
-      { //maximum address
+      {
         print_error(25);
         num = 0;
       }
-      emit(1, 0, num); // 1 is LIT for op, num is for M inside LIT
+      emit(1, 0, num);
       current = getNextToken();
     }
     else if (current.type == lparentsym)
@@ -1159,13 +1094,13 @@ void output(int count, bool l, bool a, bool v)
   // Converting instruction array to int array
   int as_code[MAX_CODE_LENGTH];
 
-  // // debugging
+  // debugging ///////////////////////////
   // printf("Contents of ins array:\n");
   // for (i = 0; i < insIndex; i++)
   // {
   //   printf("%d %d %d %d\n", ins[i].op, ins[i].r, ins[i].l, ins[i].m);
   // }
-  // ///////////////////////////////////////
+  ///////////////////////////////////////
 
   for (i = 0; i < insIndex; i++)
   {
@@ -1207,7 +1142,6 @@ void output(int count, bool l, bool a, bool v)
       ((i + 1) % 10 == 0) ? fprintf(fpout, "\n") : fprintf(fpout, " ");
     }
     fprintf(fpout, "\n\nNo errors, program is syntactically correct\n\n");
-    // insIndex = 0;
   }
   // If commanded to print generated assembly code, printing all elements of ins
   if (a == true)
@@ -1580,8 +1514,6 @@ void executionCycle(int *as_code)
   // Capturing instruction integers indicated by program counter
   ir = fetchCycle(as_code, ir, pc);
 
-
-
   fprintf(fpout, "\t\tpc\tbp\tsp\tregisters\n");
   fprintf(fpout, "Initial values\t%d\t%d\t%d\t", pc, bp, sp);
   for (x = 0; x < 8; x++)
@@ -1597,7 +1529,6 @@ void executionCycle(int *as_code)
 
   while (halt == 1)
   {
-    // printf("6\n");
     switch(ir->op)
     {
        case 1:
@@ -1612,6 +1543,7 @@ void executionCycle(int *as_code)
         bp = data_stack[sp + 3];
         pc = data_stack[sp + 4];
         super_output(pc, bp, sp, data_stack, reg, activate);
+        halt = 0;
         break;
 
        case 3:
@@ -1629,7 +1561,7 @@ void executionCycle(int *as_code)
        case 5:
         fprintf(fpout, "%d cal %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
         data_stack[sp + 1]  = 0;
-        data_stack[sp + 2]  =  vm_base(ir->l, bp, data_stack);
+        data_stack[sp + 2]  = vm_base(ir->l, bp, data_stack);
         data_stack[sp + 3]  = bp;
         data_stack[sp + 4]  = pc;
         bp = sp + 1;
@@ -1669,7 +1601,7 @@ void executionCycle(int *as_code)
          case 10:
            fprintf(fpout, "%d sio %d %d %d\t", ((pc - 1) < 0) ? 0 : pc - 1, ir->r, ir->l, ir->m);
            //stated in class to let the user know what they were scanning in
-           fprintf(fpout, "read in the register at index ir->r");
+           printf("Value: ");
            scanf("%d", &reg[ir->r]);
            super_output(pc, bp, sp, data_stack, reg, activate);
            break;
@@ -1760,19 +1692,16 @@ void executionCycle(int *as_code)
         default:
           printf("\tInvalid opcode\n");
       }
-      // printf("Instruction executed...\n");
-
       ir = fetchCycle(as_code, ir, pc++);
-      printf("ir->op == %d\n", ir->op);
-
+      // debugging
+      // printf("ir->op == %d\n", ir->op);
   }
   return;
 }
 
 int vm_base(int l, int vm_base, int* data_stack)
-// l stand for L in the instruction format
 {
-  int b1; //find vm_base L levels down
+  int b1; // find vm_base L levels down
   b1 = vm_base;
   while (l > 0)
   {
